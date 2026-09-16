@@ -18,7 +18,11 @@ export interface CanvasState {
   containerOrigin: Vec;
   searchOpen: boolean;
   settingsOpen: boolean;
+  /** Right-click menu state (screen coords + target object, null = canvas). */
+  contextMenu: { x: number; y: number; objId: string | null } | null;
 
+  openContextMenu(menu: { x: number; y: number; objId: string | null }): void;
+  closeContextMenu(): void;
   setSearchOpen(v: boolean): void;
   setSettingsOpen(v: boolean): void;
   setContainerOrigin(x: number, y: number): void;
@@ -50,12 +54,15 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
   containerOrigin: { x: 0, y: 0 },
   searchOpen: false,
   settingsOpen: false,
+  contextMenu: null,
 
+  openContextMenu: (contextMenu) => set({ contextMenu }),
+  closeContextMenu: () => set({ contextMenu: null }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setContainerOrigin: (x, y) => set({ containerOrigin: { x, y } }),
   setViewport: (viewport) => set({ viewport }),
-  setTool: (tool) => set({ tool, marquee: null, connecting: null }),
+  setTool: (tool) => set({ tool, marquee: null, connecting: null, contextMenu: null }),
   setPendingShape: (pendingShape) => set({ pendingShape }),
   setSpacePanning: (spacePanning) => set({ spacePanning }),
   setMarquee: (marquee) => set({ marquee }),

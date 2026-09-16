@@ -1,58 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { CanvasMenu } from '@/components/canvas/CanvasMenu';
 import { ObjectFrame } from '@/components/canvas/objects/ObjectFrame';
-import { useEditorStore } from '@/stores/editorStore';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { useEditorStore } from '@/stores/editorStore';
 import { createProjectData, createSticky } from '@/lib/format';
 
 /**
- * Regression coverage for the object context menu.
- *
- * Radix menu portals cannot run under this jsdom environment (the scroll-lock
- * blocks the event loop), so the Radix primitives are replaced with inert
- * pass-through components. This still exercises everything Haolio owns:
- * - the action wiring behind every menu entry ("clicking does nothing" bug)
- * - the stopPropagation guard that keeps the canvas menu from covering the
- *   object menu on right-click (the root cause of the bug).
+ * Regression coverage for the custom canvas context menu.
+ * The menu is a fully-controlled component (no portals, no dismiss layers),
+ * so these tests exercise the real click paths end-to-end:
+ * right-click → store state → rendered menu → item click → editor action.
  */
 
-vi.mock('@/components/ui/context-menu', async () => {
-  const React = await import('react');
-  type Props = { children?: React.ReactNode; onClick?: (e: unknown) => void; disabled?: boolean; className?: string };
-  const passthrough = (testId: string) =>
-    function Mocked({ children, onClick, disabled }: Props) {
-      return (
-        <div data-testid={testId} role="menuitem" aria-disabled={disabled} onClick={disabled ? undefined : onClick}>
-          {children}
-        </div>
-      );
-    };
-  return {
-    ContextMenu: ({ children }: Props) => <>{children}</>,
-    ContextMenuTrigger: ({ children }: Props) => <>{children}</>,
-    ContextMenuContent: ({ children }: Props) => <div role="menu">{children}</div>,
-    ContextMenuItem: passthrough('menu-item'),
-    ContextMenuSeparator: () => <hr />,
-    ContextMenuSub: ({ children }: Props) => <>{children}</>,
-    ContextMenuSubTrigger: passthrough('menu-sub-trigger'),
-    ContextMenuSubContent: ({ children }: Props) => <div>{children}</div>,
-    ContextMenuGroup: ({ children }: Props) => <>{children}</>,
-    ContextMenuPortal: ({ children }: Props) => <>{children}</>,
-    ContextMenuCheckboxItem: passthrough('menu-checkbox-item'),
-    ContextMenuRadioItem: passthrough('menu-radio-item'),
-    ContextMenuRadioGroup: ({ children }: Props) => <>{children}</>,
-    ContextMenuLabel: ({ children }: Props) => <div>{children}</div>,
-    ContextMenuShortcut: ({ children }: Props) => <span>{children}</span>,
-  };
-});
-
 const editor = () => useEditorStore.getState();
+const canvas = () => useCanvasStore.getState();
 
 function findItem(label: string): HTMLElement {
-  const items = screen.getAllByTestId('menu-item');
+  const items = screen.getAllByRole('menuitem');
   const found = items.find((el) => el.textContent?.includes(label));
   if (!found) throw new Error(`Menu item "${label}" not found. Have: ${items.map((i) => i.textContent).join(' | ')}`);
   return found;
+}
+
+function openMenu(objId: string | null, x = 120, y = 90): void {
+  canvas().openContextMenu({ x, y, objId });
 }
 
 beforeEach(() => {
@@ -60,18 +32,19 @@ beforeEach(() => {
   const project = createProjectData('Menu Test');
   useEditorStore.getState().openProject(project, project.project.id);
   useCanvasStore.getState().setTool('select');
+  useCanvasStore.getState().closeContextMenu();
 });
 
-describe('object context menu', () => {
-  it('right-click on an object never reaches the canvas menu trigger', () => {
+describe('object right-click wiring', () => {
+  it('right-click on an object opens the menu with its id and never reaches the canvas', () => {
     const sticky = createSticky(0, 0, 1);
     editor().addObjects([sticky], [], 'Add sticky');
 
-    let canvasMenuFired = false;
+    let backgroundMenuOpened = false;
     render(
       <div
         onContextMenu={() => {
-          canvasMenuFired = true;
+          backgroundMenuOpened = true;
         }}
       >
         <ObjectFrame obj={editor().objects[sticky.id]!} />
@@ -79,74 +52,159 @@ describe('object context menu', () => {
     );
 
     fireEvent.contextMenu(document.querySelector('[data-object-id]')!);
-    expect(canvasMenuFired).toBe(false);
+    expect(backgroundMenuOpened).toBe(false);
+    expect(canvas().contextMenu?.objId).toBe(sticky.id);
+    // Right-click also selects the object.
+    expect(editor().selection.objects).toEqual([sticky.id]);
   });
 
-  it('every menu action is wired: duplicate, copy, layer, delete', () => {
+  it('right-clicking into a multi-selection keeps the selection (for group actions)', () => {
+    const a = createSticky(0, 0, 1);
+    const b = createSticky(300, 0, 2);
+    editor().addObjects([a, b], [], 'Add stickies');
+    editor().setSelection([a.id, b.id]);
+    render(<ObjectFrame obj={editor().objects[a.id]!} />);
+
+    fireEvent.contextMenu(document.querySelector(`[data-object-id="${a.id}"]`)!);
+    expect(editor().selection.objects.sort()).toEqual([a.id, b.id].sort());
+  });
+});
+
+describe('object menu actions run on click', () => {
+  it('duplicate / cut / layer actions', () => {
     const sticky = createSticky(0, 0, 1);
     editor().addObjects([sticky], [], 'Add sticky');
-    render(<ObjectFrame obj={editor().objects[sticky.id]!} />);
+    openMenu(sticky.id);
+    render(<CanvasMenu />);
 
     fireEvent.click(findItem('Duplicate'));
     expect(Object.keys(editor().objects)).toHaveLength(2);
-    expect(editor().selection.objects).toHaveLength(1);
-    expect(editor().selection.objects[0]).not.toBe(sticky.id);
+    expect(canvas().contextMenu).toBeNull(); // menu closes after an action
 
-    fireEvent.click(findItem('Copy'));
+    openMenu(sticky.id);
+    render(<CanvasMenu />);
+    const zBefore = editor().objects[sticky.id]!.z;
+    fireEvent.click(findItem('Bring to front'));
+    expect(editor().objects[sticky.id]!.z).toBeGreaterThan(zBefore);
+
+    openMenu(sticky.id);
+    render(<CanvasMenu />);
     fireEvent.click(findItem('Cut'));
     expect(editor().objects[sticky.id]).toBeUndefined();
-
-    // Drop the deleted object's stale menu before wiring the next one.
-    cleanup();
-    const second = createSticky(300, 0, 2);
-    editor().addObjects([second], [], 'Add sticky');
-    const zBefore = editor().objects[second.id]!.z;
-    render(<ObjectFrame obj={editor().objects[second.id]!} />);
-    fireEvent.click(findItem('Bring to front'));
-    expect(editor().objects[second.id]!.z).toBeGreaterThan(zBefore);
-    fireEvent.click(findItem('Send to back'));
-    expect(editor().objects[second.id]!.z).toBeLessThan(0);
   });
 
-  it('mind map menu actions: add child, add sibling, collapse, layout', () => {
+  it('mind map actions: add child, add sibling, collapse, layout, delete', () => {
     const rootId = editor().createMindMap(0, 0);
-    render(<ObjectFrame obj={editor().objects[rootId]!} />);
+    openMenu(rootId);
+    render(<CanvasMenu />);
 
     fireEvent.click(findItem('Add child'));
-    const kids = Object.values(editor().objects).filter((o) => o.data.mind?.parentId === rootId);
-    expect(kids).toHaveLength(1);
+    const kids = () => Object.values(editor().objects).filter((o) => o.data.mind?.parentId === rootId);
+    expect(kids()).toHaveLength(1);
 
-    cleanup();
-    const child = kids[0]!;
-    render(<ObjectFrame obj={editor().objects[child.id]!} />);
+    openMenu(kids()[0]!.id);
+    render(<CanvasMenu />);
     fireEvent.click(findItem('Add sibling'));
-    expect(Object.values(editor().objects).filter((o) => o.data.mind?.parentId === rootId)).toHaveLength(2);
+    expect(kids()).toHaveLength(2);
 
-    // The root now has children, so its fresh menu offers Collapse/Expand.
-    cleanup();
-    render(<ObjectFrame obj={editor().objects[rootId]!} />);
+    // Root now has children → collapse/expand available.
+    openMenu(rootId);
+    render(<CanvasMenu />);
     fireEvent.click(findItem('Collapse branch'));
     expect(editor().objects[rootId]!.data.mind!.collapsed).toBe(true);
 
-    // Fresh render so the menu reflects the toggled state (real Radix would
-    // re-render via props; the mock keeps the initial props).
-    cleanup();
-    render(<ObjectFrame obj={editor().objects[rootId]!} />);
+    openMenu(rootId);
+    render(<CanvasMenu />);
     fireEvent.click(findItem('Expand branch'));
     expect(editor().objects[rootId]!.data.mind!.collapsed).toBe(false);
 
-    fireEvent.click(findItem('Vertical'));
+    openMenu(rootId);
+    render(<CanvasMenu />);
+    fireEvent.click(findItem('Layout: Vertical'));
     expect(editor().objects[rootId]!.data.mind!.layout).toBe('vertical');
-    fireEvent.click(findItem('Radial'));
-    expect(editor().objects[rootId]!.data.mind!.layout).toBe('radial');
+
+    openMenu(kids()[0]!.id);
+    render(<CanvasMenu />);
+    const doomedId = kids()[0]!.id;
+    fireEvent.click(findItem('Delete'));
+    // The clicked child (and nothing above it) is removed; sibling + root stay.
+    expect(Object.keys(editor().objects)).toHaveLength(2);
+    expect(editor().objects[doomedId]).toBeUndefined();
   });
 
-  it('delete entry removes a mind node with its subtree', () => {
-    const rootId = editor().createMindMap(0, 0);
-    editor().addMindChild(rootId);
-    render(<ObjectFrame obj={editor().objects[rootId]!} />);
+  it('disabled entries do nothing and stay open-safe (ungroup on plain sticky)', () => {
+    const sticky = createSticky(0, 0, 1);
+    editor().addObjects([sticky], [], 'Add sticky');
+    openMenu(sticky.id);
+    render(<CanvasMenu />);
 
-    fireEvent.click(findItem('Delete'));
-    expect(Object.keys(editor().objects)).toHaveLength(0);
+    const ungroup = findItem('Ungroup') as HTMLButtonElement;
+    expect(ungroup.disabled).toBe(true);
+    fireEvent.click(ungroup);
+    expect(canvas().contextMenu).not.toBeNull();
+  });
+});
+
+describe('background menu', () => {
+  it('offers paste and select all, actions run', () => {
+    const sticky = createSticky(0, 0, 1);
+    editor().addObjects([sticky], [], 'Add sticky');
+    editor().setSelection([sticky.id]);
+    editor().copySelection();
+
+    openMenu(null, 300, 200);
+    render(<CanvasMenu />);
+
+    expect(findItem('New sticky note')).toBeDefined();
+    fireEvent.click(findItem('Paste'));
+    expect(Object.keys(editor().objects)).toHaveLength(2);
+
+    openMenu(null);
+    render(<CanvasMenu />);
+    fireEvent.click(findItem('Select all'));
+    expect(editor().selection.objects).toHaveLength(2);
+  });
+
+  it('closes on outside pointerdown', () => {
+    openMenu(null);
+    render(<CanvasMenu />);
+    expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+
+    fireEvent.pointerDown(document.body);
+    expect(canvas().contextMenu).toBeNull();
+  });
+
+  it('closes on Escape', () => {
+    openMenu(null);
+    render(<CanvasMenu />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(canvas().contextMenu).toBeNull();
+  });
+
+  it('pointerdown inside the menu never reaches the canvas container (click stays on the button)', () => {
+    // Replicates the real DOM arrangement: <CanvasMenu/> is a child of the
+    // canvas container whose onPointerDown starts a marquee gesture with
+    // pointer capture — that would swallow the item's click event.
+    const sticky = createSticky(0, 0, 1);
+    editor().addObjects([sticky], [], 'Add sticky');
+    openMenu(sticky.id);
+
+    let containerPointerDown = false;
+    render(
+      <div
+        onPointerDown={() => {
+          containerPointerDown = true;
+        }}
+      >
+        <CanvasMenu />
+      </div>,
+    );
+
+    const item = findItem('Duplicate');
+    fireEvent.pointerDown(item);
+    expect(containerPointerDown).toBe(false);
+
+    fireEvent.click(item);
+    expect(Object.keys(editor().objects)).toHaveLength(2);
   });
 });

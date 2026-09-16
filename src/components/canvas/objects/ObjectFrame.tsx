@@ -2,7 +2,6 @@ import { memo } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { beginConnect, beginObjectDrag, beginPan } from '../interactions';
-import { ObjectContextMenu } from '../ObjectContextMenu';
 import { TextView } from './TextView';
 import { StickyNoteView } from './StickyNoteView';
 import { ShapeView } from './ShapeView';
@@ -35,6 +34,20 @@ export const ObjectFrame = memo(function ObjectFrame({ obj }: { obj: CanvasObjec
     if (e.button === 0) beginObjectDrag(e, obj);
   };
 
+  // Right-click: select the object (unless it is already part of the current
+  // multi-selection, so group actions stay usable) and open the canvas menu.
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const editor = useEditorStore.getState();
+    if (!editor.selection.objects.includes(obj.id)) {
+      const targetId =
+        obj.parentId && editor.objects[obj.parentId]?.type === 'group' ? obj.parentId : obj.id;
+      editor.setSelection([targetId]);
+    }
+    useCanvasStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, objId: obj.id });
+  };
+
   const onDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const editor = useEditorStore.getState();
@@ -65,29 +78,24 @@ export const ObjectFrame = memo(function ObjectFrame({ obj }: { obj: CanvasObjec
   })();
 
   return (
-    <ObjectContextMenu obj={obj}>
-      <div
-        data-object-id={obj.id}
-        className="absolute touch-none select-none"
-        style={{
-          left: obj.x,
-          top: obj.y,
-          width: obj.width,
-          height: obj.height,
-          transform: obj.rotation ? `rotate(${obj.rotation}deg)` : undefined,
-          transformOrigin: 'center center',
-          zIndex: obj.z,
-          pointerEvents: isFrame ? 'none' : 'auto',
-        }}
-        onPointerDown={isFrame ? undefined : onPointerDown}
-        onDoubleClick={isFrame ? undefined : onDoubleClick}
-        // The canvas background is also a Radix ContextMenu trigger; without
-        // stopping propagation here BOTH menus would open on right-click and
-        // the canvas menu would cover the object's own menu.
-        onContextMenu={(e) => e.stopPropagation()}
-      >
-        {view}
-      </div>
-    </ObjectContextMenu>
+    <div
+      data-object-id={obj.id}
+      className="absolute touch-none select-none"
+      style={{
+        left: obj.x,
+        top: obj.y,
+        width: obj.width,
+        height: obj.height,
+        transform: obj.rotation ? `rotate(${obj.rotation}deg)` : undefined,
+        transformOrigin: 'center center',
+        zIndex: obj.z,
+        pointerEvents: isFrame ? 'none' : 'auto',
+      }}
+      onPointerDown={isFrame ? undefined : onPointerDown}
+      onDoubleClick={isFrame ? undefined : onDoubleClick}
+      onContextMenu={isFrame ? (e) => e.preventDefault() : onContextMenu}
+    >
+      {view}
+    </div>
   );
 });

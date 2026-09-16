@@ -14,7 +14,7 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { ConnectionPreview } from './ConnectionPreview';
 import { GridView } from './GridView';
 import { Minimap } from './Minimap';
-import { CanvasContextMenu } from './ObjectContextMenu';
+import { CanvasMenu } from './CanvasMenu';
 import type { CanvasObject, Rect } from '@/lib/types';
 
 const CULL_MARGIN = 140;
@@ -119,6 +119,11 @@ export function Canvas() {
     [snapPoint],
   );
 
+  const onContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    useCanvasStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, objId: null });
+  }, []);
+
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     // Only when the background itself is double-clicked (objects stop propagation).
     const tool = useCanvasStore.getState().tool;
@@ -126,10 +131,6 @@ export function Canvas() {
     const world = worldFromClient(e.clientX, e.clientY);
     const editor = useEditorStore.getState();
     editor.createObjectAt('sticky', Math.round(world.x - 100), Math.round(world.y - 100));
-  }, []);
-
-  const onContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
   }, []);
 
   // Cull + z-sort objects for rendering.
@@ -156,15 +157,15 @@ export function Canvas() {
         : 'crosshair';
 
   return (
-    <CanvasContextMenu>
-      <div
-        ref={containerRef}
-        className="relative h-full w-full overflow-hidden bg-canvas"
-        style={{ cursor, touchAction: 'none' }}
-        onPointerDown={onPointerDown}
-        onDoubleClick={onDoubleClick}
-        {...dropHandlers}
-      >
+    <div
+      ref={containerRef}
+      className="relative h-full w-full overflow-hidden bg-canvas"
+      style={{ cursor, touchAction: 'none' }}
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu}
+      {...dropHandlers}
+    >
         <GridView gridStyle={gridStyle} gridSize={gridSize} />
         <EdgeLayer />
         <div
@@ -189,8 +190,8 @@ export function Canvas() {
           )}
           <SelectionOverlay />
         </div>
-        <Minimap />
-      </div>
-    </CanvasContextMenu>
+      <Minimap />
+      <CanvasMenu />
+    </div>
   );
 }
