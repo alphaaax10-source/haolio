@@ -1,0 +1,118 @@
+import { memo, useMemo } from 'react';
+import { useEditorStore } from '@/stores/editorStore';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { cachedEdgeGeometry, pruneEdgeCache } from '@/lib/edgeGeometryCache';
+import { cn } from '@/lib/utils';
+import type { Edge } from '@/lib/types';
+
+function markerIdFor(color: string, start: boolean): string {
+  const safe = color.replace(/[^a-zA-Z0-9]/g, '');
+  return `haolio-arrow-${start ? 's' : 'e'}-${safe}`;
+}
+
+const EdgeView = memo(function EdgeView({ edge }: { edge: Edge }) {
+  const from = useEditorStore((s) => s.objects[edge.from]);
+  const to = useEditorStore((s) => s.objects[edge.to]);
+  const selected = useEditorStore((s) => s.selection.edges.includes(edge.id));
+
+  // Reference-keyed cache: only recomputes when this edge or one of its two
+  // endpoints (or its mind tree root) was actually rewritten.
+  const geo = useMemo(
+    () => (from && to ? cachedEdgeGeometry(edge, useEditorStore.getState().objects) : null),
+    [edge, from, to],
+  );
+
+  if (!geo) return null;
+  const color = selected ? 'hsl(var(--primary))' : geo.color;
+  const markerEnd = geo.arrow !== 'none' ? `url(#${markerIdFor(color, false)})` : undefined;
+  const markerStart = geo.arrow === 'double' ? `url(#${markerIdFor(color, true)})` : undefined;
+
+  const onSelect = (e: React.PointerEvent) => {
+    if (e.button === 2) return;
+    e.stopPropagation();
+    const editor = useEditorStore.getState();
+    if (e.shiftKey) {
+      const has = editor.selection.edges.includes(edge.id);
+      editor.setSelection(
+        editor.selection.objects,
+        has ? editor.selection.edges.filter((id) => id !== edge.id) : [...editor.selection.edges, edge.id],
+      );
+    } else {
+      editor.setSelection([], [edge.id]);
+    }
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const editor = useEditorStore.getState();
+    if (!editor.selection.edges.includes(edge.id)) editor.setSelection([], [edge.id]);
+    useCanvasStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, edgeId: edge.id });
+  };
+
+  return (
+    <g>
+      {/* generous invisible hit area */}
+      <path
+        d={geo.d}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={16}
+        className="cursor-pointer"
+        style={{ pointerEvents: 'stroke' }}
+        onPointerDown={onSelect}
+        onContextMenu={onContextMenu}
+      />
+      <path
+        d={geo.d}
+        fill="none"
+        stroke={color}
+        strokeWidth={geo.width + (selected ? 1.5 : 0)}
+        strokeLinecap="round"
+        markerEnd={markerEnd}
+        markerStart={markerStart}
+        style={{ pointerEvents: 'none' }}
+      />
+    </g>
+  );
+});
+
+/** SVG layer for all connections (rendered beneath objects). */
+export function EdgeLayer() {
+  const edges = useEditorStore((s) => s.edges);
+  const viewport = useCanvasStore((s) => s.viewport);
+
+  // Marker defs derive purely from edge data (mind branches never draw
+  // arrows), so this only reruns when the edge SET changes — not on drags.
+  const markers = useMemo(() => {
+    const colors = new Set<string>();
+    for (const edge of Object.values(edges)) {
+      if ((edge.data.arrow ?? 'none') === 'none') continue;
+      colors.add(String(edge.style.color ?? '#94a3b8'));
+    }
+    return [...colors].flatMap((color) => [
+      <marker key={markerIdFor(color, false)} id={markerIdFor(color, false)} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M 0 0.8 L 9.2 5 L 0 9.2 z" fill={color} />
+      </marker>,
+      <marker key={markerIdFor(color, true)} id={markerIdFor(color, true)} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+        <path d="M 0 0.8 L 9.2 5 L 0 9.2 z" fill={color} />
+      </marker>,
+    ]);
+  }, [edges]);
+
+  const sorted = useMemo(() => {
+    pruneEdgeCache(new Set(Object.keys(edges)));
+    return Object.values(edges).sort((a, b) => a.z - b.z);
+  }, [edges]);
+
+  return (
+    <svg className={cn('absolute inset-0 h-full w-full')} style={{ overflow: 'visible', pointerEvents: 'none' }}>
+      <defs>{markers}</defs>
+      <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`}>
+        {sorted.map((edge) => (
+          <EdgeView key={edge.id} edge={edge} />
+        ))}
+      </g>
+    </svg>
+  );
+}

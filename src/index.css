@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 226 100% 95%;
+    --accent-foreground: 243 75% 50%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 89%;
+    --input: 220 13% 89%;
+    --ring: 243 75% 59%;
+    --radius: 0.625rem;
+
+    /* Canvas-specific tokens */
+    --canvas-bg: 210 40% 96%;
+    --canvas-grid: 220 13% 84%;
+    --canvas-grid-major: 220 13% 76%;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 44% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 44% 9%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 217 15% 62%;
+    --accent: 239 60% 22%;
+    --accent-foreground: 228 96% 89%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 25% 18%;
+    --input: 222 25% 20%;
+    --ring: 239 84% 67%;
+
+    --canvas-bg: 222 47% 6%;
+    --canvas-grid: 222 25% 15%;
+    --canvas-grid-major: 222 25% 22%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+}
+
+/* Thin scrollbars for panels */
+.haolio-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.haolio-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 8px;
+}
+.haolio-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Canvas grid uses CSS variables so it adapts to theme */
+.canvas-grid-dots {
+  background-image: radial-gradient(circle, hsl(var(--canvas-grid)) 1.1px, transparent 1.1px);
+}
+.canvas-grid-lines {
+  background-image:
+    linear-gradient(to right, hsl(var(--canvas-grid)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--canvas-grid)) 1px, transparent 1px);
+}
