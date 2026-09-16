@@ -50,6 +50,22 @@ describe('edge geometry attaches connectors to object borders', () => {
     expect(geo.d).toMatch(/132 21$/);
   });
 
+  it('auto-flips anchor sides as a node moves (below → bottom/top, then right → right/left)', () => {
+    const parent = mindNode('p', 0, 0, { rootId: 'p' });
+    const below = mindNode('c', 200, 300, { parentId: 'p', rootId: 'p' });
+    const geoBelow = computeEdgeGeometry(createEdge('p', 'c', 1), { p: parent, c: below })!;
+    // Child is mostly below → edge leaves the parent's BOTTOM midpoint
+    // (66, 42) and enters the child's TOP midpoint (266, 300).
+    expect(geoBelow.d).toContain('M 66 42');
+    expect(geoBelow.d).toMatch(/266 300$/);
+
+    // Same child dragged to the right side → edge flips to right/left.
+    const right = { ...below, x: 500, y: 0 };
+    const geoRight = computeEdgeGeometry(createEdge('p', 'c', 1), { p: parent, c: right })!;
+    expect(geoRight.d).toContain('M 132 21');
+    expect(geoRight.d).toMatch(/500 21$/);
+  });
+
   it('radial mind edge is a straight border-to-border line', () => {
     const parent = mindNode('p', 0, 0, { layout: 'radial', rootId: 'p' });
     const child = mindNode('c', 300, 100, { parentId: 'p', rootId: 'p' });

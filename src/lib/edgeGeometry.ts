@@ -51,17 +51,14 @@ export function computeEdgeGeometry(edge: Edge, objects: Record<string, CanvasOb
       a = edgeExitPoint(from, toCenter);
       b = edgeExitPoint(to, fromCenter);
       d = straightPath(a, b);
-    } else if (layout === 'vertical') {
-      const below = toCenter.y >= fromCenter.y;
-      const aSide = below ? 'bottom' : 'top';
-      const bSide = below ? 'top' : 'bottom';
-      a = anchorPoint(from, aSide);
-      b = anchorPoint(to, bSide);
-      d = curvedPath(a, aSide, b, bSide);
     } else {
-      const right = toCenter.x >= fromCenter.x;
-      const aSide = right ? 'right' : 'left';
-      const bSide = right ? 'left' : 'right';
+      // Dynamic sides: pick each node's nearest side towards the other node,
+      // so a branch dragged below its parent automatically re-routes from the
+      // bottom (and back to the side when moved sideways again). Anchors stay
+      // on the side midpoints and the curve control follows the side, keeping
+      // the endpoints glued and smooth.
+      const aSide = nearestSide(from, toCenter);
+      const bSide = nearestSide(to, fromCenter);
       a = anchorPoint(from, aSide);
       b = anchorPoint(to, bSide);
       d = curvedPath(a, aSide, b, bSide);

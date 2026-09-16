@@ -28,6 +28,23 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { toast } from '@/stores/toastStore';
 import type { CanvasObject } from '@/lib/types';
 
+/**
+ * Safety net for environments where Radix's modal scroll-lock misbehaves
+ * (e.g. apps embedded in an iframe): if body ended up with `pointer-events:
+ * none` while no menu/dialog is open anymore, restore it so the UI stays
+ * clickable. Cheap no-op in healthy sessions.
+ */
+function healStuckPointerLock(): void {
+  requestAnimationFrame(() => {
+    const anyOverlayOpen = document.querySelector(
+      '[role="menu"], [role="dialog"], [data-radix-popper-content-wrapper]',
+    );
+    if (!anyOverlayOpen && document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
+  });
+}
+
 /** Right-click menu for canvas objects. */
 export function ObjectContextMenu({ obj, children }: { obj: CanvasObject; children: ReactNode }) {
   const editor = () => useEditorStore.getState();
@@ -36,9 +53,12 @@ export function ObjectContextMenu({ obj, children }: { obj: CanvasObject; childr
   const hasChildren = (obj.data.mind?.childCount ?? 0) > 0;
 
   return (
-    <ContextMenu>
+    // modal={false}: right-click menus must not lock the page. Radix's modal
+    // scroll-lock (body pointer-events none) is fragile inside iframes and
+    // made menu items unclickable in embedded previews.
+    <ContextMenu modal={false} onOpenChange={(open) => !open && healStuckPointerLock()}>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="w-56">
+      <ContextMenuContent className="z-[70] w-56">
         {isMind && (
           <>
             <ContextMenuItem
@@ -143,7 +163,7 @@ export function ObjectContextMenu({ obj, children }: { obj: CanvasObject; childr
 /** Right-click menu for the empty canvas background. */
 export function CanvasContextMenu({ children }: { children: ReactNode }) {
   return (
-    <ContextMenu>
+    <ContextMenu modal={false} onOpenChange={(open) => !open && healStuckPointerLock()}>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
         <ContextMenuItem onClick={() => useCanvasStore.getState().setTool('sticky')}>
