@@ -13,6 +13,7 @@ import {
   saveProjectSnapshotFlow,
 } from '@/lib/appFiles';
 import { toast } from '@/stores/toastStore';
+import { isTauri } from '@/lib/bridge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Topbar } from './Topbar';
 import { Toolbar } from './Toolbar';
@@ -96,9 +97,30 @@ export function EditorShell({ onBackToDashboard }: { onBackToDashboard: () => vo
     window.addEventListener('beforeunload', onBeforeUnload);
     document.addEventListener('visibilitychange', onVisibility);
 
+    // Desktop shell: the native close button bypasses beforeunload, so
+    // intercept the close request, finish the pending save, then close.
+    let unlistenClose: (() => void) | undefined;
+    if (isTauri()) {
+      void (async () => {
+        try {
+          const { getCurrentWindow } = await import('@tauri-apps/api/window');
+          unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
+            if (useEditorStore.getState().saveStatus === 'saving') {
+              event.preventDefault();
+              await flushNow();
+              void getCurrentWindow().destroy();
+            }
+          });
+        } catch {
+          // Window API unavailable — beforeunload/visibility still cover it.
+        }
+      })();
+    }
+
     return () => {
       unsubscribe();
       flushListener();
+      unlistenClose?.();
       window.removeEventListener('beforeunload', onBeforeUnload);
       document.removeEventListener('visibilitychange', onVisibility);
       window.clearTimeout(timer);

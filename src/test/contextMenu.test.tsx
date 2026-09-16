@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { CanvasMenu } from '@/components/canvas/CanvasMenu';
+import { EdgeLayer } from '@/components/canvas/EdgeLayer';
 import { ObjectFrame } from '@/components/canvas/objects/ObjectFrame';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useEditorStore } from '@/stores/editorStore';
-import { createProjectData, createSticky } from '@/lib/format';
+import { createProjectData, createSticky, createEdge } from '@/lib/format';
 
 /**
  * Regression coverage for the custom canvas context menu.
@@ -142,6 +143,72 @@ describe('object menu actions run on click', () => {
     expect(ungroup.disabled).toBe(true);
     fireEvent.click(ungroup);
     expect(canvas().contextMenu).not.toBeNull();
+  });
+});
+
+describe('edge (connector) right-click menu', () => {
+  function makeEdge() {
+    const a = createSticky(0, 0, 1);
+    a.id = 'ea';
+    const b = createSticky(500, 0, 2);
+    b.id = 'eb';
+    editor().addObjects([a, b], [], 'Add stickies');
+    const edge = createEdge('ea', 'eb', 1);
+    editor().addEdge(edge, 'Connect');
+    return edge;
+  }
+
+  it('changes route and arrows, then deletes the connection', () => {
+    const edge = makeEdge();
+    canvas().openContextMenu({ x: 200, y: 200, edgeId: edge.id });
+    render(<CanvasMenu />);
+
+    fireEvent.click(findItem('Elbow line'));
+    expect(editor().edges[edge.id]!.data.route).toBe('elbow');
+
+    canvas().openContextMenu({ x: 200, y: 200, edgeId: edge.id });
+    render(<CanvasMenu />);
+    fireEvent.click(findItem('Double arrow'));
+    expect(editor().edges[edge.id]!.data.arrow).toBe('double');
+
+    canvas().openContextMenu({ x: 200, y: 200, edgeId: edge.id });
+    render(<CanvasMenu />);
+    fireEvent.click(findItem('Delete connection'));
+    expect(Object.keys(editor().edges)).toHaveLength(0);
+  });
+
+  it('right-clicking an edge selects it first (via the edge layer)', () => {
+    const edge = makeEdge();
+    render(<EdgeLayer />);
+    const hitPath = document.querySelector('svg path[onContextMenu]') ?? document.querySelector('svg path')!;
+    fireEvent.contextMenu(hitPath);
+    expect(editor().selection.edges).toEqual([edge.id]);
+    expect(canvas().contextMenu?.edgeId).toBe(edge.id);
+  });
+});
+
+describe('menu keyboard navigation', () => {
+  it('arrow keys move focus between items, Enter activates', async () => {
+    const sticky = createSticky(0, 0, 1);
+    editor().addObjects([sticky], [], 'Add sticky');
+    openMenu(sticky.id);
+    const { container } = render(<CanvasMenu />);
+
+    await new Promise((r) => setTimeout(r, 10));
+    const items = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')];
+    expect(items.length).toBeGreaterThan(2);
+
+    fireEvent.keyDown(container.querySelector('[role="menu"]')!, { key: 'ArrowDown' });
+    const focused = document.activeElement as HTMLButtonElement;
+    expect(focused).toBe(items[1]); // moved from Copy to Cut
+
+    fireEvent.keyDown(container.querySelector('[role="menu"]')!, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(items[0]);
+
+    fireEvent.keyDown(container.querySelector('[role="menu"]')!, { key: 'ArrowDown' });
+    // Activating the focused item (native button click) runs its action.
+    fireEvent.click(document.activeElement as HTMLButtonElement);
+    expect(editor().objects[sticky.id]).toBeUndefined(); // Cut removed it
   });
 });
 

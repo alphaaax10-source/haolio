@@ -56,7 +56,7 @@ export async function openProjectFileFlow(): Promise<void> {
   try {
     const picked = await openTextFile(HAOLIO_FILTERS);
     if (!picked) return;
-    useLibraryStore.getState().importProjectText(picked.text, picked.name.replace(/\.haolio$/i, ''));
+    await useLibraryStore.getState().importProjectText(picked.text, picked.name.replace(/\.haolio$/i, ''));
   } catch (error) {
     toast.error(`Unable to open project. ${error instanceof Error ? error.message : ''}`.trim());
   }

@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
 import {
+  Spline,
+  Circle,
+  ChevronsRight,
   Copy,
   Scissors as Cut,
   CopyPlus as Duplicate,
@@ -52,7 +55,39 @@ function close(): void {
   useCanvasStore.getState().closeContextMenu();
 }
 
-function buildSections(obj: CanvasObject | null, selectionCount: number): MenuSection[] {
+function edgeSections(edgeId: string): MenuSection[] {
+  const editor = () => useEditorStore.getState();
+  return [
+    {
+      items: [
+        { label: 'Straight line', icon: Minus, action: () => editor().setEdgeRoute([edgeId], 'straight') },
+        { label: 'Curved line', icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'curved') },
+        { label: 'Elbow line', icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'elbow') },
+      ],
+    },
+    {
+      items: [
+        { label: 'No arrow', icon: Circle, action: () => editor().setEdgeArrow([edgeId], 'none') },
+        { label: 'Arrow', icon: ArrowRight, action: () => editor().setEdgeArrow([edgeId], 'arrow') },
+        { label: 'Double arrow', icon: ChevronsRight, action: () => editor().setEdgeArrow([edgeId], 'double') },
+      ],
+    },
+    {
+      items: [
+        {
+          label: 'Delete connection',
+          icon: Trash2,
+          shortcut: 'Del',
+          danger: true,
+          action: () => editor().deleteEdgesByIds([edgeId]),
+        },
+      ],
+    },
+  ];
+}
+
+function buildSections(obj: CanvasObject | null, edgeId: string | null, selectionCount: number): MenuSection[] {
+  if (edgeId && !obj) return edgeSections(edgeId);
   if (!obj) {
     // Background menu.
     return [
@@ -191,12 +226,17 @@ const SECTION_OVERHEAD = 9;
 export function CanvasMenu() {
   const contextMenu = useCanvasStore((s) => s.contextMenu);
   const objId = contextMenu?.objId ?? null;
+  const edgeId = contextMenu?.edgeId ?? null;
   const obj = useEditorStore((s) => (objId ? s.objects[objId] : undefined));
   const selectionCount = useEditorStore((s) => s.selection.objects.length);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!contextMenu) return;
+    // Focus the first enabled entry so arrow-key navigation works right away.
+    requestAnimationFrame(() => {
+      ref.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    });
     const onPointerDown = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
@@ -222,7 +262,7 @@ export function CanvasMenu() {
 
   if (!contextMenu) return null;
 
-  const sections = buildSections(obj ?? null, selectionCount);
+  const sections = buildSections(obj ?? null, edgeId, selectionCount);
   const estimatedHeight = sections.reduce((acc, s) => acc + s.items.length * ITEM_HEIGHT + SECTION_OVERHEAD, 4);
   const left = Math.max(8, Math.min(contextMenu.x, window.innerWidth - MENU_WIDTH - 8));
   const top = Math.max(8, Math.min(contextMenu.y, window.innerHeight - estimatedHeight - 8));
@@ -240,6 +280,20 @@ export function CanvasMenu() {
       // and swallows the button's click event entirely.
       onPointerDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        e.stopPropagation();
+        const items = [
+          ...ref.current!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'),
+        ];
+        const current = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next =
+          e.key === 'ArrowDown'
+            ? items[(current + 1) % items.length]
+            : items[(current - 1 + items.length) % items.length];
+        next?.focus();
+      }}
     >
       {sections.map((section, si) => (
         <div key={si} className={cn(si > 0 && 'mt-1 border-t pt-1')}>

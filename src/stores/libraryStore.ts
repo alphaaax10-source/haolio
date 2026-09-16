@@ -29,7 +29,7 @@ interface LibraryState {
   hydrate(): Promise<void>;
   createProject(name: string, template: ProjectTemplate): string | null;
   openProject(id: string): Promise<void>;
-  importProjectText(text: string, fallbackName: string): void;
+  importProjectText(text: string, fallbackName: string): Promise<void>;
   closeProject(): void;
   renameProject(id: string, name: string): void;
   removeProject(id: string): Promise<void>;
@@ -105,10 +105,20 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
     set({ activeProjectId: id });
   },
 
-  importProjectText: (text, fallbackName) => {
+  importProjectText: async (text, fallbackName) => {
     try {
       const data = parseProjectText(text);
       if (!data.project.name || data.project.name === 'Untitled Project') data.project.name = fallbackName;
+      // Opening the same file twice must not create duplicate projects:
+      // refresh the existing local copy instead.
+      const existing = get().projects.find((p) => p.id === data.project.id);
+      if (existing) {
+        await dbSet(projectKey(existing.id), { data, savedAt: nowIso() } satisfies WorkingCopy);
+        get().updateRecordMeta(existing.id, data);
+        await get().openProject(existing.id);
+        toast.info(`“${data.project.name}” already exists — loaded its newest copy.`);
+        return;
+      }
       const record = recordFromProject(data, nowIso());
       const projects = [record, ...get().projects];
       set({ projects });

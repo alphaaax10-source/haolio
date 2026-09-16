@@ -47,10 +47,27 @@ const EdgeView = memo(function EdgeView({ edge }: { edge: Edge }) {
     }
   };
 
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const editor = useEditorStore.getState();
+    if (!editor.selection.edges.includes(edge.id)) editor.setSelection([], [edge.id]);
+    useCanvasStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, edgeId: edge.id });
+  };
+
   return (
     <g>
       {/* generous invisible hit area */}
-      <path d={geo.d} fill="none" stroke="transparent" strokeWidth={16} className="cursor-pointer" style={{ pointerEvents: 'stroke' }} onPointerDown={onSelect} />
+      <path
+        d={geo.d}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={16}
+        className="cursor-pointer"
+        style={{ pointerEvents: 'stroke' }}
+        onPointerDown={onSelect}
+        onContextMenu={onContextMenu}
+      />
       <path
         d={geo.d}
         fill="none"

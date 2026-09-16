@@ -7,7 +7,6 @@ import { objectBounds, rectsIntersect, snapValue } from '@/lib/geometry';
 import { beginCreate } from './interactionsCreate';
 import { beginPan, beginMarquee } from './interactions';
 import { useImageImport } from '@/hooks/useImageImport';
-import { toast } from '@/stores/toastStore';
 import { EdgeLayer } from './EdgeLayer';
 import { ObjectFrame } from './objects/ObjectFrame';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -110,7 +109,8 @@ export function Canvas() {
           beginCreate(e, world, setCreatePreview);
           break;
         case 'connector':
-          toast.info('Connector: click and drag from one object to another.');
+          // Background click while a connection is armed cancels it.
+          if (canvas.connecting) canvas.setConnecting(null);
           break;
         case 'image':
           break;
@@ -132,6 +132,19 @@ export function Canvas() {
     const editor = useEditorStore.getState();
     editor.createObjectAt('sticky', Math.round(world.x - 100), Math.round(world.y - 100));
   }, []);
+
+  // Keep the armed connector preview glued to the cursor (click-to-click mode).
+  useEffect(() => {
+    if (tool !== 'connector' || !connecting) return;
+    const onMove = (e: PointerEvent) => {
+      const store = useCanvasStore.getState();
+      if (store.connecting) {
+        store.setConnecting({ fromId: store.connecting.fromId, cursor: worldFromClient(e.clientX, e.clientY) });
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    return () => window.removeEventListener('pointermove', onMove);
+  }, [tool, connecting?.fromId]);
 
   // Cull + z-sort objects for rendering.
   const viewRect: Rect = {

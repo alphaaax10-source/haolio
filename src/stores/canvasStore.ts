@@ -18,10 +18,10 @@ export interface CanvasState {
   containerOrigin: Vec;
   searchOpen: boolean;
   settingsOpen: boolean;
-  /** Right-click menu state (screen coords + target object, null = canvas). */
-  contextMenu: { x: number; y: number; objId: string | null } | null;
+  /** Right-click menu state (screen coords + targeted object/edge, null target = canvas). */
+  contextMenu: { x: number; y: number; objId: string | null; edgeId: string | null } | null;
 
-  openContextMenu(menu: { x: number; y: number; objId: string | null }): void;
+  openContextMenu(menu: { x: number; y: number; objId?: string | null; edgeId?: string | null }): void;
   closeContextMenu(): void;
   setSearchOpen(v: boolean): void;
   setSettingsOpen(v: boolean): void;
@@ -56,7 +56,7 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
   settingsOpen: false,
   contextMenu: null,
 
-  openContextMenu: (contextMenu) => set({ contextMenu }),
+  openContextMenu: ({ x, y, objId = null, edgeId = null }) => set({ contextMenu: { x, y, objId, edgeId } }),
   closeContextMenu: () => set({ contextMenu: null }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),

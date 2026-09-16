@@ -37,6 +37,16 @@ export function useShortcuts(enabled: boolean): void {
       const canvas = useCanvasStore.getState();
       const editor = useEditorStore.getState();
       if (!editor.data) return;
+      // Overlays own the keyboard: no tool/history shortcuts while search,
+      // settings, any dialog or the context menu is open.
+      if (
+        canvas.searchOpen ||
+        canvas.settingsOpen ||
+        canvas.contextMenu ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
 
       if (e.key === ' ') {
         if (!isTypingTarget(e.target)) {

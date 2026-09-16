@@ -136,12 +136,16 @@ export function beginConnect(e: React.PointerEvent, obj: CanvasObject): void {
     detach(move, up);
     const state = useCanvasStore.getState();
     const from = state.connecting?.fromId ?? obj.id;
-    state.setConnecting(null);
     const p = worldFromClient(ev.clientX, ev.clientY);
     const target = topObjectAt(useEditorStore.getState().objects, p, new Set([from]));
     if (target) {
+      state.setConnecting(null);
       useEditorStore.getState().connectObjects(from, target.id);
+      return;
     }
+    // Released over empty canvas: arm click-to-click mode — the next click on
+    // an object completes the connection (Escape / tool change cancels).
+    state.setConnecting({ fromId: from, cursor: p });
   };
   attach(move, up);
 }

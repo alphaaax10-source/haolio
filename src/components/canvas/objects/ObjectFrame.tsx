@@ -28,6 +28,14 @@ export const ObjectFrame = memo(function ObjectFrame({ obj }: { obj: CanvasObjec
       return;
     }
     if (canvas.tool === 'connector') {
+      // Click-to-click: a pending connection is completed by clicking the
+      // target object.
+      const pending = canvas.connecting;
+      if (pending && pending.fromId !== obj.id) {
+        useEditorStore.getState().connectObjects(pending.fromId, obj.id);
+        canvas.setConnecting(null);
+        return;
+      }
       beginConnect(e, obj);
       return;
     }

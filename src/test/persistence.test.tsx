@@ -70,12 +70,25 @@ describe('local persistence', () => {
     const project = createProjectData('From File');
     const text = serializeProject(project);
     // Imported projects get their own library record.
-    library().importProjectText(text, 'From File');
+    await library().importProjectText(text, 'From File');
     expect(library().projects.some((p) => p.name === 'From File')).toBe(true);
     // Corrupt content is rejected with an error toast, not a crash.
     expect(() => parseProjectText('{{')).toThrow();
-    library().importProjectText('{{', 'Broken');
+    await library().importProjectText('{{', 'Broken');
     expect(editor().data?.project.name).not.toBe('Broken');
+  });
+
+  it('importing the same file twice does not duplicate the project', async () => {
+    await library().hydrate();
+    const project = createProjectData('Same File');
+    const text = serializeProject(project);
+    await library().importProjectText(text, 'Same File');
+    await library().importProjectText(text, 'Same File');
+    const matches = library().projects.filter((p) => p.id === project.project.id);
+    expect(matches).toHaveLength(1);
+    expect(library().projects.filter((p) => p.name === 'Same File')).toHaveLength(1);
+    // The existing copy is opened.
+    expect(editor().data?.project.id).toBe(project.project.id);
   });
 
   it('removes a project and its local data', async () => {
