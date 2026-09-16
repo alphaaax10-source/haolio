@@ -18,10 +18,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Board } from '@/lib/types';
 
 export function BoardsSidebar() {
+  const t = useT();
   const visible = useEditorStore((s) => !!s.data);
   const boards = useEditorStore((s) => s.data?.boards ?? []);
   const boardId = useEditorStore((s) => s.boardId);
@@ -91,16 +93,16 @@ export function BoardsSidebar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
                       <DropdownMenuItem onClick={() => startRename(board)}>
-                        <Pencil /> Rename
+                        <Pencil /> {t('common.rename')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => duplicateBoard(board.id)}>
-                        <Copy /> Duplicate
+                        <Copy /> {t('common.duplicate')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => moveBoard(board.id, -1)}>
-                        <ChevronUp /> Move up
+                        <ChevronUp /> {t('bd.moveUp')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => moveBoard(board.id, 1)}>
-                        <ChevronDown /> Move down
+                        <ChevronDown /> {t('bd.moveDown')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
@@ -118,13 +120,13 @@ export function BoardsSidebar() {
         </ContextMenuTrigger>
         <ContextMenuContent className="w-48">
           <ContextMenuItem onClick={() => startRename(board)}>
-            Rename <ContextMenuShortcut>F2</ContextMenuShortcut>
+            {t('common.rename')} <ContextMenuShortcut>F2</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => duplicateBoard(board.id)}>
-            Duplicate
+            {t('common.duplicate')}
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => moveBoard(board.id, -1)}>Move up</ContextMenuItem>
-          <ContextMenuItem onClick={() => moveBoard(board.id, 1)}>Move down</ContextMenuItem>
+          <ContextMenuItem onClick={() => moveBoard(board.id, -1)}>{t('bd.moveUp')}</ContextMenuItem>
+          <ContextMenuItem onClick={() => moveBoard(board.id, 1)}>{t('bd.moveDown')}</ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-destructive focus:text-destructive"
@@ -141,7 +143,7 @@ export function BoardsSidebar() {
   return (
     <aside className="z-20 flex w-56 shrink-0 flex-col border-r bg-card" onPointerDown={(e) => e.stopPropagation()}>
       <div className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Boards
+        {t('bd.boards')}
       </div>
       <div className="haolio-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
         {boards.map((board) =>
@@ -165,15 +167,15 @@ export function BoardsSidebar() {
       </div>
       <div className="border-t p-2">
         <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={() => addBoard()}>
-          <Plus /> New board
+          <Plus /> {t('bd.new')}
         </Button>
       </div>
       <ConfirmDialog
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete board “${deleting?.title ?? ''}”?`}
-        description="Everything on this board will be permanently removed. This cannot be undone."
-        confirmLabel="Delete board"
+        title={t('bd.deleteTitle', { name: deleting?.title ?? '' })}
+        description={t('bd.deleteDesc')}
+        confirmLabel={t('bd.deleteConfirm')}
         destructive
         onConfirm={() => {
           if (deleting) deleteBoard(deleting.id);

@@ -1,6 +1,7 @@
 import { useToastStore } from '@/stores/toastStore';
 import { CheckCircle2, CircleAlert, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const ICONS = {
   success: CheckCircle2,
@@ -10,6 +11,8 @@ const ICONS = {
 
 /** Bottom-center toast stack (save errors, import results, hints). */
 export function Toaster() {
+
+  const tr = useT();
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
 
@@ -47,7 +50,7 @@ export function Toaster() {
               type="button"
               className={cn('shrink-0 rounded p-1', t.kind === 'error' ? 'hover:bg-white/15' : 'text-muted-foreground hover:bg-accent')}
               onClick={() => dismiss(t.id)}
-              aria-label="Dismiss"
+              aria-label={tr('toast.dismiss')}
             >
               <X className="h-3.5 w-3.5" />
             </button>

@@ -5,6 +5,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { createImage } from '@/lib/format';
 import { toast } from '@/stores/toastStore';
 import type { Vec } from '@/lib/types';
+import { tNow } from '@/lib/i18n';
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif', 'image/bmp', 'image/avif'];
@@ -45,7 +46,7 @@ export function useImageImport() {
     const list = [...files];
     const images = list.filter((f) => ACCEPTED.includes(f.type) || /\.(png|jpe?g|webp|svg|gif|bmp|avif)$/i.test(f.name));
     if (images.length === 0) {
-      if (list.length > 0) toast.error('Unable to import image. Supported: PNG, JPG, WEBP, SVG.');
+      if (list.length > 0) toast.error(tNow('msg.importUnsupported'));
       return;
     }
     const editor = useEditorStore.getState();
@@ -53,7 +54,7 @@ export function useImageImport() {
     let index = 0;
     for (const file of images) {
       if (file.size > MAX_BYTES) {
-        toast.error(`Unable to import image “${file.name}” — it is larger than 10 MB.`);
+        toast.error(tNow('msg.importTooBig', { name: file.name }));
         continue;
       }
       try {
@@ -74,7 +75,7 @@ export function useImageImport() {
         editor.addObjects([obj], [], 'Import image');
         index += 1;
       } catch {
-        toast.error(`Unable to import image “${file.name}”.`);
+        toast.error(tNow('msg.importFail', { name: file.name }));
       }
     }
   }, []);

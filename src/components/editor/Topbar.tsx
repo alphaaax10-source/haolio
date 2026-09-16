@@ -16,6 +16,7 @@ import {
   Check,
   Loader2,
   Menu,
+  FileText,
 } from 'lucide-react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useLibraryStore } from '@/stores/libraryStore';
@@ -38,9 +39,11 @@ import { RenameDialog } from '@/components/RenameDialog';
 import { emitUiEvent } from '@/lib/uiEvents';
 import { cn } from '@/lib/utils';
 import type { ExportScope } from '@/lib/exporter';
+import { useT } from '@/lib/i18n';
 
 function SaveStatus() {
   const status = useEditorStore((s) => s.saveStatus);
+  const t = useT();
   const retry = () => {
     emitUiEvent('flush-save');
   };
@@ -52,21 +55,21 @@ function SaveStatus() {
         'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground',
         status === 'error' && 'bg-destructive/10 text-destructive hover:bg-destructive/20',
       )}
-      title={status === 'error' ? 'Click to retry saving' : undefined}
+      title={status === 'error' ? t('top.saveFailedTitle') : undefined}
     >
       {status === 'saving' && (
         <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('top.saving')}
         </>
       )}
       {status === 'saved' && (
         <>
-          <Check className="h-3.5 w-3.5 text-emerald-500" /> Saved
+          <Check className="h-3.5 w-3.5 text-emerald-500" /> {t('top.saved')}
         </>
       )}
       {status === 'error' && (
         <>
-          <CircleAlert className="h-3.5 w-3.5" /> Save failed — Retry
+          <CircleAlert className="h-3.5 w-3.5" /> {t('top.saveFailed')}
         </>
       )}
       {status === 'idle' && null}
@@ -85,13 +88,14 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
   const sidebarVisible = useSettings((s) => s.sidebarVisible);
   const setPref = useSettings((s) => s.setPref);
   const theme = useSettings((s) => s.theme);
+  const t = useT();
   const [renameOpen, setRenameOpen] = useState(false);
 
   return (
     <header className="z-30 flex h-12 shrink-0 items-center gap-1 border-b bg-card px-2">
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Application menu">
+          <Button variant="ghost" size="icon" aria-label={t('top.appMenu')}>
             <Menu className="h-4.5 w-4.5" />
           </Button>
         </DropdownMenuTrigger>
@@ -101,47 +105,53 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onBackToDashboard}>
-            <FilePlus2 /> New project
+            <FilePlus2 /> {t('top.newProject')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => emitUiEvent('open-project-file')}>
-            <FolderOpen /> Open .haolio file…
+            <FolderOpen /> {t('top.openFile')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => emitUiEvent('save-project')}>
-            <Save /> Save snapshot (.haolio)
+            <Save /> {t('top.saveSnapshot')}
             <span className="ml-auto text-xs text-muted-foreground">Ctrl+S</span>
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <ImageIcon /> Export board
+              <ImageIcon /> {t('top.exportBoard')}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-52">
-              <DropdownMenuLabel>Scope</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('top.scope')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => emitUiEvent('export-png-board')}>
-                <ImageIcon /> PNG — entire board
+                <ImageIcon /> {t('top.pngBoard')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => emitUiEvent('export-svg-board')}>
-                <ImageIcon /> SVG — entire board
+                <ImageIcon /> {t('top.svgBoard')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Selection / view</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('top.scopeSel')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => emitUiEvent('export-png-selection')}>
-                <ImageIcon /> PNG — selection
+                <ImageIcon /> {t('top.pngSel')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => emitUiEvent('export-svg-selection')}>
-                <ImageIcon /> SVG — selection
+                <ImageIcon /> {t('top.svgSel')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => emitUiEvent('export-png-viewport')}>
-                <ImageIcon /> PNG — visible viewport
+                <ImageIcon /> {t('top.pngViewport')}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          <DropdownMenuItem onClick={() => emitUiEvent('export-pdf-board')}>
+            <FileText /> {t('top.pdfBoard')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => emitUiEvent('export-pdf-selection')}>
+            <FileText /> {t('top.pdfSel')}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => emitUiEvent('export-json')}>
-            <FileJson /> Export project JSON
+            <FileJson /> {t('top.exportJson')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => useCanvasStore.getState().setSettingsOpen(true)}>
-            <Settings /> Settings
+            <Settings /> {t('top.settings')}
             <span className="ml-auto text-xs text-muted-foreground">Ctrl+,</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -151,7 +161,7 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
         type="button"
         className="ml-1 flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent"
         onClick={() => setRenameOpen(true)}
-        title="Rename project"
+        title={t('dash.renameProject')}
       >
         <span className="text-sm font-semibold text-primary">◈</span>
         <span className="max-w-[220px] truncate text-sm font-semibold">{projectName}</span>
@@ -162,19 +172,19 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
       <div className="mx-auto flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Undo" disabled={!canUndo} onClick={undo}>
+            <Button variant="ghost" size="icon" aria-label={t('common.undo')} disabled={!canUndo} onClick={undo}>
               <Undo2 />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Undo — Ctrl+Z</TooltipContent>
+          <TooltipContent>{t('top.ttUndo')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Redo" disabled={!canRedo} onClick={redo}>
+            <Button variant="ghost" size="icon" aria-label={t('common.redo')} disabled={!canRedo} onClick={redo}>
               <Redo2 />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Redo — Ctrl+Shift+Z</TooltipContent>
+          <TooltipContent>{t('top.ttRedo')}</TooltipContent>
         </Tooltip>
       </div>
 
@@ -185,33 +195,33 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Search"
+              aria-label={t('common.search')}
               onClick={() => useCanvasStore.getState().setSearchOpen(true)}
             >
               <Search />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Search — Ctrl+F</TooltipContent>
+          <TooltipContent>{t('top.ttSearch')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Toggle boards sidebar"
+              aria-label={t('top.ttBoards')}
               onClick={() => setPref('sidebarVisible', !sidebarVisible)}
             >
               <PanelLeft className={cn(!sidebarVisible && 'opacity-50')} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Boards sidebar</TooltipContent>
+          <TooltipContent>{t('top.ttBoards')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Toggle theme"
+              aria-label={t('dash.lightDark')}
               onClick={() => {
                 const isDark = document.documentElement.classList.contains('dark');
                 setPref('theme', isDark ? 'light' : 'dark');
@@ -222,27 +232,27 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
               <Moon className="dark:hidden" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Light / dark</TooltipContent>
+          <TooltipContent>{t('dash.lightDark')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Settings"
+              aria-label={t('top.settings')}
               onClick={() => useCanvasStore.getState().setSettingsOpen(true)}
             >
               <Settings />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Settings</TooltipContent>
+          <TooltipContent>{t('top.settings')}</TooltipContent>
         </Tooltip>
       </div>
 
       <RenameDialog
         open={renameOpen}
         onOpenChange={setRenameOpen}
-        title="Rename project"
+        title={t('dash.renameProject')}
         initial={projectName}
         onCommit={(name) => {
           const editor = useEditorStore.getState();

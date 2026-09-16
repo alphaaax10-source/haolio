@@ -6,6 +6,7 @@ import { normalizeProject, parseProjectText, projectColorFor, serializeProject, 
 import { createProjectFromTemplate, createWelcomeProject, type ProjectTemplate } from '@/lib/templates';
 import { useEditorStore } from './editorStore';
 import { toast } from './toastStore';
+import { tNow } from '@/lib/i18n';
 
 // -----------------------------------------------------------------------------
 // Library store: the list of local projects + their autosaved working copies.
@@ -86,7 +87,7 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
   openProject: async (id) => {
     const copy = await get().loadWorkingCopy(id);
     if (!copy) {
-      toast.error('Unable to open project. Its local data may be missing.', {
+      toast.error(tNow('msg.projectMissing'), {
         actionLabel: 'Remove',
         onAction: () => void get().removeProject(id),
       });
@@ -116,7 +117,7 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
         await dbSet(projectKey(existing.id), { data, savedAt: nowIso() } satisfies WorkingCopy);
         get().updateRecordMeta(existing.id, data);
         await get().openProject(existing.id);
-        toast.info(`“${data.project.name}” already exists — loaded its newest copy.`);
+        toast.info(tNow('msg.alreadyExists', { name: data.project.name }));
         return;
       }
       const record = recordFromProject(data, nowIso());
@@ -126,10 +127,10 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
       void dbSet(projectKey(record.id), { data, savedAt: nowIso() } satisfies WorkingCopy);
       useEditorStore.getState().openProject(data, record.id);
       set({ activeProjectId: record.id });
-      toast.success(`Opened “${data.project.name}”`);
+      toast.success(tNow('msg.opened', { name: data.project.name }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Invalid Haolio project. ${message}`);
+      toast.error(tNow('msg.invalidProject', { reason: message }));
     }
   },
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useImageImport } from '@/hooks/useImageImport';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -28,13 +29,13 @@ import {
 import { cn } from '@/lib/utils';
 import type { ShapeKind, Tool } from '@/lib/types';
 
-const SHAPE_KINDS: { kind: ShapeKind; icon: typeof Square; label: string }[] = [
-  { kind: 'rectangle', icon: Square, label: 'Rectangle' },
-  { kind: 'rounded_rectangle', icon: RectangleHorizontal, label: 'Rounded' },
-  { kind: 'circle', icon: Circle, label: 'Circle' },
-  { kind: 'diamond', icon: Diamond, label: 'Diamond' },
-  { kind: 'triangle', icon: Triangle, label: 'Triangle' },
-  { kind: 'hexagon', icon: Hexagon, label: 'Hexagon' },
+const SHAPE_KINDS: { kind: ShapeKind; icon: typeof Square; labelKey: string }[] = [
+  { kind: 'rectangle', icon: Square, labelKey: 'sh.rectangle' },
+  { kind: 'rounded_rectangle', icon: RectangleHorizontal, labelKey: 'sh.roundedShort' },
+  { kind: 'circle', icon: Circle, labelKey: 'sh.circle' },
+  { kind: 'diamond', icon: Diamond, labelKey: 'sh.diamond' },
+  { kind: 'triangle', icon: Triangle, labelKey: 'sh.triangle' },
+  { kind: 'hexagon', icon: Hexagon, labelKey: 'sh.hexagon' },
 ];
 
 export function Toolbar() {
@@ -43,6 +44,7 @@ export function Toolbar() {
   const setTool = useCanvasStore((s) => s.setTool);
   const setPendingShape = useCanvasStore((s) => s.setPendingShape);
   const { importFiles } = useImageImport();
+  const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ToolButton = ({
@@ -91,11 +93,11 @@ export function Toolbar() {
       onPointerDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
     >
-      <ToolButton id="select" icon={MousePointer2} label="Select" shortcut="V" active={tool === 'select'} onClick={() => setTool('select')} />
-      <ToolButton id="hand" icon={Hand} label="Hand" shortcut="H" active={tool === 'hand'} onClick={() => setTool('hand')} />
+      <ToolButton id="select" icon={MousePointer2} label={t('tb.select')} shortcut="V" active={tool === 'select'} onClick={() => setTool('select')} />
+      <ToolButton id="hand" icon={Hand} label={t('tb.hand')} shortcut="H" active={tool === 'hand'} onClick={() => setTool('hand')} />
       <div className="my-1 h-px w-6 bg-border" />
-      <ToolButton id="text" icon={Type} label="Text" shortcut="T" active={tool === 'text'} onClick={() => setTool('text')} />
-      <ToolButton id="sticky" icon={StickyNote} label="Sticky note" shortcut="N" active={tool === 'sticky'} onClick={() => setTool('sticky')} />
+      <ToolButton id="text" icon={Type} label={t('tb.text')} shortcut="T" active={tool === 'text'} onClick={() => setTool('text')} />
+      <ToolButton id="sticky" icon={StickyNote} label={t('tb.sticky')} shortcut="N" active={tool === 'sticky'} onClick={() => setTool('sticky')} />
       <DropdownMenu modal={false}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -107,18 +109,18 @@ export function Toolbar() {
                   'h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground',
                   tool === 'shape' && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                 )}
-                aria-label="Shape"
+                aria-label={t('tb.shape')}
               >
                 <activeShape.icon className="h-[18px] w-[18px]" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-2">
-            Shape <kbd className="rounded bg-background/20 px-1 text-[10px]">S</kbd>
+            {t('tb.shape')} <kbd className="rounded bg-background/20 px-1 text-[10px]">S</kbd>
           </TooltipContent>
         </Tooltip>
         <DropdownMenuContent side="right" align="start" className="w-44">
-          {SHAPE_KINDS.map(({ kind, icon: Icon, label }) => (
+          {SHAPE_KINDS.map(({ kind, icon: Icon, labelKey }) => (
             <DropdownMenuItem
               key={kind}
               onClick={() => {
@@ -126,17 +128,17 @@ export function Toolbar() {
                 setTool('shape');
               }}
             >
-              <Icon /> {label}
+              <Icon /> {t(labelKey)}
               {pendingShape === kind && <span className="ml-auto text-xs text-primary">✓</span>}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <ToolButton id="connector" icon={Spline} label="Connector" shortcut="C" active={tool === 'connector'} onClick={() => setTool('connector')} />
-      <ToolButton id="mindmap" icon={Network} label="Mind map" shortcut="M" active={tool === 'mindmap'} onClick={() => setTool('mindmap')} />
+      <ToolButton id="connector" icon={Spline} label={t('tb.connector')} shortcut="C" active={tool === 'connector'} onClick={() => setTool('connector')} />
+      <ToolButton id="mindmap" icon={Network} label={t('tb.mindmap')} shortcut="M" active={tool === 'mindmap'} onClick={() => setTool('mindmap')} />
       <div className="my-1 h-px w-6 bg-border" />
-      <ToolButton icon={ImagePlus} label="Import image" shortcut="PNG · SVG" onClick={() => fileInputRef.current?.click()} />
-      <ToolButton id="frame" icon={Frame} label="Frame" shortcut="F" active={tool === 'frame'} onClick={() => setTool('frame')} />
+      <ToolButton icon={ImagePlus} label={t('tb.importImage')} shortcut={t('tb.imageHint')} onClick={() => fileInputRef.current?.click()} />
+      <ToolButton id="frame" icon={Frame} label={t('tb.frame')} shortcut="F" active={tool === 'frame'} onClick={() => setTool('frame')} />
       <input
         ref={fileInputRef}
         type="file"

@@ -1,10 +1,11 @@
-import { Minus, Plus, Maximize2, Crosshair } from 'lucide-react';
+import { Minus, Plus, Maximize2, Crosshair, Focus } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { fitToContent } from '@/hooks/useShortcuts';
+import { fitToContent, zoomToSelection } from '@/hooks/useShortcuts';
 import { objectBounds, unionRects } from '@/lib/geometry';
 import { useEditorStore } from '@/stores/editorStore';
+import { useT } from '@/lib/i18n';
 
 /** Zoom %, zoom in/out, fit-to-content and reset-origin controls. */
 export function ViewportControls() {
@@ -12,6 +13,7 @@ export function ViewportControls() {
   const setZoom = useCanvasStore((s) => s.setZoom);
   const zoomBy = useCanvasStore((s) => s.zoomBy);
   const centerOn = useCanvasStore((s) => s.centerOn);
+  const t = useT();
   void useEditorStore((s) => s.rev); // re-render on doc change (selection fit uses it)
 
   return (
@@ -22,7 +24,7 @@ export function ViewportControls() {
     >
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="iconSm" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.25)}>
+          <Button variant="ghost" size="iconSm" aria-label={t('vc.zoomOut')} onClick={() => zoomBy(1 / 1.25)}>
             <Minus />
           </Button>
         </TooltipTrigger>
@@ -38,7 +40,7 @@ export function ViewportControls() {
       </button>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="iconSm" aria-label="Zoom in" onClick={() => zoomBy(1.25)}>
+          <Button variant="ghost" size="iconSm" aria-label={t('vc.zoomIn')} onClick={() => zoomBy(1.25)}>
             <Plus />
           </Button>
         </TooltipTrigger>
@@ -47,7 +49,7 @@ export function ViewportControls() {
       <div className="mx-0.5 h-5 w-px bg-border" />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="iconSm" aria-label="Fit to content" onClick={fitToContent}>
+          <Button variant="ghost" size="iconSm" aria-label={t('vc.fitBoard')} onClick={fitToContent}>
             <Maximize2 />
           </Button>
         </TooltipTrigger>
@@ -58,13 +60,13 @@ export function ViewportControls() {
           <Button
             variant="ghost"
             size="iconSm"
-            aria-label="Go to origin"
+            aria-label={t('vc.goOrigin')}
             onClick={() => centerOn({ x: 0, y: 0 })}
           >
             <Crosshair />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top">Center on origin</TooltipContent>
+        <TooltipContent side="top">{t('vc.centerOrigin')}</TooltipContent>
       </Tooltip>
     </div>
   );

@@ -11,6 +11,21 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** Shift+F: frame the selection in view (falls back to fitting the board). */
+export function zoomToSelection(): void {
+  const editor = useEditorStore.getState();
+  const rects = editor.selection.objects
+    .map((id) => editor.objects[id])
+    .filter(Boolean)
+    .map((o) => objectBounds(o));
+  const bounds = unionRects(rects);
+  if (bounds) {
+    useCanvasStore.getState().centerOnRect(bounds, 140);
+  } else {
+    fitToContent();
+  }
+}
+
 function fitToContent(): void {
   const editor = useEditorStore.getState();
   const rects = Object.values(editor.objects)
@@ -174,6 +189,11 @@ export function useShortcuts(enabled: boolean): void {
           }
           return;
         }
+        case 'F':
+          // Shift+F — zoom to the current selection (or fit the board).
+          e.preventDefault();
+          zoomToSelection();
+          return;
         case 'v':
           canvas.setTool('select');
           return;

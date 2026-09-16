@@ -4,6 +4,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useSettings } from '@/lib/settings';
 import { objectBounds, unionRects } from '@/lib/geometry';
 import type { CanvasObject, Rect } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const W = 176;
 const H = 124;
@@ -60,6 +61,7 @@ function computeMinimapData(objects: Record<string, CanvasObject>, worldView: Re
 
 /** Compact minimap: content overview + draggable viewport rectangle. */
 export function Minimap() {
+  const t = useT();
   const visible = useSettings((s) => s.showMinimap);
   const objects = useEditorStore((s) => s.objects);
   const viewport = useCanvasStore((s) => s.viewport);
@@ -103,7 +105,7 @@ export function Minimap() {
       className="absolute bottom-4 right-4 rounded-xl border bg-card/90 p-1 shadow-md backdrop-blur"
       onPointerDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
-      title="Minimap — drag to navigate"
+      title={t('mm.title')}
     >
       <svg
         width={W}

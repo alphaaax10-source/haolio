@@ -3,8 +3,10 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useElementAutoSize } from '@/hooks/useElementAutoSize';
 import { EditableText } from '@/components/EditableText';
 import type { CanvasObject } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export function TextView({ obj, editing }: { obj: CanvasObject; editing: boolean }) {
+  const t = useT();
   const text = String(obj.data.text ?? '');
   const style = obj.style;
 
@@ -49,7 +51,7 @@ export function TextView({ obj, editing }: { obj: CanvasObject; editing: boolean
         }}
         className="outline-none"
         style={typography}
-        placeholder="Text"
+        placeholder={t('ph.text')}
       />
     </div>
   );

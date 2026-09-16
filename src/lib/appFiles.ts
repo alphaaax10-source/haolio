@@ -1,16 +1,18 @@
-import { buildBoardSvg, exportScopeRect, svgToPngBlob, suggestFileName, type ExportScope } from './exporter';
+import { buildBoardSvg, exportScopeRect, svgToPdfBlob, svgToPngBlob, suggestFileName, type ExportScope } from './exporter';
 import { openTextFile, saveBinaryFile, saveTextFile } from './bridge';
 import { parseProjectText, serializeProject } from './format';
 import { useEditorStore } from '@/stores/editorStore';
 import { useLibraryStore } from '@/stores/libraryStore';
 import { toast } from '@/stores/toastStore';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { tNow } from '@/lib/i18n';
 
 // High-level .haolio / export flows shared by menus and shortcuts.
 
 const HAOLIO_FILTERS = [{ name: 'Haolio Project', extensions: ['haolio'] }];
 const PNG_FILTERS = [{ name: 'PNG Image', extensions: ['png'] }];
 const SVG_FILTERS = [{ name: 'SVG Image', extensions: ['svg'] }];
+const PDF_FILTERS = [{ name: 'PDF Document', extensions: ['pdf'] }];
 const JSON_FILTERS = [{ name: 'JSON Project', extensions: ['json'] }];
 
 function resolvedBackground(): string {
@@ -26,9 +28,9 @@ export async function saveProjectSnapshotFlow(): Promise<void> {
   try {
     const name = `${editor.data.project.name}.haolio`;
     const ok = await saveTextFile(name, serializeProject(editor.data), HAOLIO_FILTERS);
-    if (ok) toast.success('Project saved to file.');
+    if (ok) toast.success(tNow('msg.savedToFile'));
   } catch (error) {
-    toast.error(`Unable to save project. ${error instanceof Error ? error.message : ''}`.trim(), {
+    toast.error(tNow('msg.unableSave', { reason: error instanceof Error ? error.message : '' }), {
       actionLabel: 'Retry',
       onAction: () => void saveProjectSnapshotFlow(),
     });
@@ -45,9 +47,9 @@ export async function exportProjectJsonFlow(): Promise<void> {
       JSON.stringify(editor.data, null, 2),
       JSON_FILTERS,
     );
-    if (ok) toast.success('Project exported as JSON.');
+    if (ok) toast.success(tNow('msg.exportedJson'));
   } catch (error) {
-    toast.error(`Unable to export JSON. ${error instanceof Error ? error.message : ''}`.trim());
+    toast.error(tNow('msg.unableExport', { kind: 'JSON', reason: error instanceof Error ? error.message : '' }));
   }
 }
 
@@ -58,12 +60,12 @@ export async function openProjectFileFlow(): Promise<void> {
     if (!picked) return;
     await useLibraryStore.getState().importProjectText(picked.text, picked.name.replace(/\.haolio$/i, ''));
   } catch (error) {
-    toast.error(`Unable to open project. ${error instanceof Error ? error.message : ''}`.trim());
+    toast.error(tNow('msg.unableOpenFile', { reason: error instanceof Error ? error.message : '' }));
   }
 }
 
 export async function exportBoardImageFlow(
-  kind: 'png' | 'svg',
+  kind: 'png' | 'svg' | 'pdf',
   scope: ExportScope,
 ): Promise<void> {
   const editor = useEditorStore.getState();
@@ -91,14 +93,21 @@ export async function exportBoardImageFlow(
     const fileName = suggestFileName(editor.data, board, kind);
     if (kind === 'svg') {
       const ok = await saveTextFile(fileName, svg, SVG_FILTERS);
-      if (ok) toast.success('Board exported as SVG.');
-    } else {
-      const blob = await svgToPngBlob(svg, 2);
-      const ok = await saveBinaryFile(fileName, blob, PNG_FILTERS);
-      if (ok) toast.success('Board exported as PNG.');
+      if (ok) toast.success(tNow('msg.exportedSvg'));
+      return;
     }
+    const rect = exportScopeRect(scope, board, editor.selection.objects, viewportRect);
+    if (kind === 'pdf') {
+      const blob = await svgToPdfBlob(svg, rect.width, rect.height);
+      const ok = await saveBinaryFile(fileName, blob, PDF_FILTERS);
+      if (ok) toast.success(tNow('msg.exportedPdf'));
+      return;
+    }
+    const blob = await svgToPngBlob(svg, 2);
+    const ok = await saveBinaryFile(fileName, blob, PNG_FILTERS);
+    if (ok) toast.success(tNow('msg.exportedPng'));
   } catch (error) {
-    toast.error(`Unable to export image. ${error instanceof Error ? error.message : ''}`.trim(), {
+    toast.error(tNow('msg.unableExport', { kind: 'PNG/SVG', reason: error instanceof Error ? error.message : '' }), {
       actionLabel: 'Retry',
       onAction: () => void exportBoardImageFlow(kind, scope),
     });

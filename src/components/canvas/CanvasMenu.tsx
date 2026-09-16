@@ -27,6 +27,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { toast } from '@/stores/toastStore';
 import { cn } from '@/lib/utils';
+import { useT, type Translate } from '@/lib/i18n';
 import type { CanvasObject } from '@/lib/types';
 
 // -----------------------------------------------------------------------------
@@ -55,27 +56,27 @@ function close(): void {
   useCanvasStore.getState().closeContextMenu();
 }
 
-function edgeSections(edgeId: string): MenuSection[] {
+function edgeSections(edgeId: string, t: Translate): MenuSection[] {
   const editor = () => useEditorStore.getState();
   return [
     {
       items: [
-        { label: 'Straight line', icon: Minus, action: () => editor().setEdgeRoute([edgeId], 'straight') },
-        { label: 'Curved line', icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'curved') },
-        { label: 'Elbow line', icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'elbow') },
+        { label: t('cm.lineStraight'), icon: Minus, action: () => editor().setEdgeRoute([edgeId], 'straight') },
+        { label: t('cm.lineCurved'), icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'curved') },
+        { label: t('cm.lineElbow'), icon: Spline, action: () => editor().setEdgeRoute([edgeId], 'elbow') },
       ],
     },
     {
       items: [
-        { label: 'No arrow', icon: Circle, action: () => editor().setEdgeArrow([edgeId], 'none') },
-        { label: 'Arrow', icon: ArrowRight, action: () => editor().setEdgeArrow([edgeId], 'arrow') },
-        { label: 'Double arrow', icon: ChevronsRight, action: () => editor().setEdgeArrow([edgeId], 'double') },
+        { label: t('cm.noArrow'), icon: Circle, action: () => editor().setEdgeArrow([edgeId], 'none') },
+        { label: t('cm.arrow'), icon: ArrowRight, action: () => editor().setEdgeArrow([edgeId], 'arrow') },
+        { label: t('cm.doubleArrow'), icon: ChevronsRight, action: () => editor().setEdgeArrow([edgeId], 'double') },
       ],
     },
     {
       items: [
         {
-          label: 'Delete connection',
+          label: t('cm.deleteConnection'),
           icon: Trash2,
           shortcut: 'Del',
           danger: true,
@@ -86,30 +87,30 @@ function edgeSections(edgeId: string): MenuSection[] {
   ];
 }
 
-function buildSections(obj: CanvasObject | null, edgeId: string | null, selectionCount: number): MenuSection[] {
-  if (edgeId && !obj) return edgeSections(edgeId);
-  if (!obj) {
+function buildSections(obj: CanvasObject | null, edgeId: string | null, selectionCount: number, t: Translate): MenuSection[] {
+  if (edgeId && !obj) return edgeSections(edgeId, t);
+  if (!obj && !edgeId) {
     // Background menu.
     return [
       {
         items: [
-          { label: 'New sticky note', icon: StickyNote, shortcut: 'N', action: () => useCanvasStore.getState().setTool('sticky') },
-          { label: 'New mind map', icon: Network, shortcut: 'M', action: () => useCanvasStore.getState().setTool('mindmap') },
-          { label: 'New text', icon: Type, shortcut: 'T', action: () => useCanvasStore.getState().setTool('text') },
+          { label: t('cm.newSticky'), icon: StickyNote, shortcut: 'N', action: () => useCanvasStore.getState().setTool('sticky') },
+          { label: t('cm.newMindmap'), icon: Network, shortcut: 'M', action: () => useCanvasStore.getState().setTool('mindmap') },
+          { label: t('cm.newText'), icon: Type, shortcut: 'T', action: () => useCanvasStore.getState().setTool('text') },
         ],
       },
       {
         items: [
           {
-            label: 'Paste',
+            label: t('common.paste'),
             icon: ClipboardPaste,
             shortcut: 'Ctrl+V',
             action: () => {
-              if (!useEditorStore.getState().pasteClipboard()) toast.info('Clipboard is empty');
+              if (!useEditorStore.getState().pasteClipboard()) toast.info(t('cm.clipboardEmpty'));
             },
           },
           {
-            label: 'Select all',
+            label: t('cm.selectAll'),
             icon: Layers,
             shortcut: 'Ctrl+A',
             action: () => useEditorStore.getState().selectAll(),
@@ -118,6 +119,7 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
       },
     ];
   }
+  if (!obj) return []; // edge-only handled above; keeps obj narrowed below
 
   const editor = () => useEditorStore.getState();
   // Selection-facing actions always guarantee the right-clicked object is in
@@ -138,7 +140,7 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
   if (isMind) {
     const mindItems: MenuItemDef[] = [
       {
-        label: 'Add child',
+        label: t('cm.addChild'),
         icon: GitBranch,
         shortcut: 'Tab',
         action: () => editor().addMindChild(obj.id),
@@ -146,7 +148,7 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
     ];
     if (!isRoot) {
       mindItems.push({
-        label: 'Add sibling',
+        label: t('cm.addSibling'),
         icon: GitBranch,
         shortcut: 'Enter',
         action: () => editor().addMindSibling(obj.id),
@@ -154,7 +156,7 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
     }
     if (hasChildren) {
       mindItems.push({
-        label: obj.data.mind?.collapsed ? 'Expand branch' : 'Collapse branch',
+        label: obj.data.mind?.collapsed ? t('cm.expand') : t('cm.collapse'),
         icon: obj.data.mind?.collapsed ? Plus : Minus,
         shortcut: 'Space',
         action: () => editor().toggleCollapse(obj.id),
@@ -163,39 +165,38 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
     sections.push({ items: mindItems });
     sections.push({
       items: [
-        { label: 'Layout: Horizontal', icon: ArrowRight, action: () => editor().setMindLayout(mindRootId(), 'horizontal') },
-        { label: 'Layout: Vertical', icon: ArrowDown, action: () => editor().setMindLayout(mindRootId(), 'vertical') },
-        { label: 'Layout: Radial', icon: Orbit, action: () => editor().setMindLayout(mindRootId(), 'radial') },
+        { label: t('cm.layoutH'), icon: ArrowRight, action: () => editor().setMindLayout(mindRootId(), 'horizontal') },
+        { label: t('cm.layoutV'), icon: ArrowDown, action: () => editor().setMindLayout(mindRootId(), 'vertical') },
+        { label: t('cm.layoutR'), icon: Orbit, action: () => editor().setMindLayout(mindRootId(), 'radial') },
       ],
     });
   }
 
   sections.push({
     items: [
-      { label: 'Copy', icon: Copy, shortcut: 'Ctrl+C', action: () => withTargetSelected(() => editor().copySelection()) },
-      { label: 'Cut', icon: Cut, shortcut: 'Ctrl+X', action: () => withTargetSelected(() => editor().cutSelection()) },
-      { label: 'Duplicate', icon: Duplicate, shortcut: 'Ctrl+D', action: () => withTargetSelected(() => editor().duplicateSelection()) },
+      { label: t('common.copy'), icon: Copy, shortcut: 'Ctrl+C', action: () => withTargetSelected(() => editor().copySelection()) },
+      { label: t('common.cut'), icon: Cut, shortcut: 'Ctrl+X', action: () => withTargetSelected(() => editor().cutSelection()) },
+      { label: t('common.duplicate'), icon: Duplicate, shortcut: 'Ctrl+D', action: () => withTargetSelected(() => editor().duplicateSelection()) },
     ],
   });
 
   sections.push({
     items: [
-      { label: 'Bring to front', icon: ChevronsUp, action: () => editor().reorder([obj.id], 'front') },
-      { label: 'Send to back', icon: ChevronsDown, action: () => editor().reorder([obj.id], 'back') },
+      { label: t('cm.bringFront'), icon: ChevronsUp, action: () => editor().reorder([obj.id], 'front') },
+      { label: t('cm.sendBack'), icon: ChevronsDown, action: () => editor().reorder([obj.id], 'back') },
     ],
   });
 
   sections.push({
     items: [
       {
-        label: 'Group selection',
+        label: t('cm.groupSel'),
         icon: Group,
         disabled: selectionCount < 2,
         action: () => editor().group(editor().selection.objects),
       },
-      // (withTargetSelected is used by copy/cut/duplicate/delete)
       {
-        label: 'Ungroup',
+        label: t('cm.ungroup'),
         icon: Ungroup,
         disabled: obj.type !== 'group' && !obj.parentId,
         action: () => editor().ungroup([obj.id]),
@@ -206,7 +207,7 @@ function buildSections(obj: CanvasObject | null, edgeId: string | null, selectio
   sections.push({
     items: [
       {
-        label: 'Delete',
+        label: t('cm.delete'),
         icon: Trash2,
         shortcut: 'Del',
         danger: true,
@@ -229,6 +230,7 @@ export function CanvasMenu() {
   const edgeId = contextMenu?.edgeId ?? null;
   const obj = useEditorStore((s) => (objId ? s.objects[objId] : undefined));
   const selectionCount = useEditorStore((s) => s.selection.objects.length);
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -262,7 +264,7 @@ export function CanvasMenu() {
 
   if (!contextMenu) return null;
 
-  const sections = buildSections(obj ?? null, edgeId, selectionCount);
+  const sections = buildSections(obj ?? null, edgeId, selectionCount, t);
   const estimatedHeight = sections.reduce((acc, s) => acc + s.items.length * ITEM_HEIGHT + SECTION_OVERHEAD, 4);
   const left = Math.max(8, Math.min(contextMenu.x, window.innerWidth - MENU_WIDTH - 8));
   const top = Math.max(8, Math.min(contextMenu.y, window.innerHeight - estimatedHeight - 8));

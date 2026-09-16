@@ -4,7 +4,19 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 import type { CanvasObject } from '@/lib/types';
+
+const TYPE_TO_KEY: Record<string, string> = {
+  text: 'typeText',
+  sticky_note: 'typeSticky',
+  shape: 'typeShape',
+  image: 'typeImage',
+  frame: 'typeFrame',
+  mindmap_node: 'typeMind',
+  group: 'typeGroup',
+};
+
 
 interface ObjectHit {
   kind: 'board' | 'object';
@@ -25,6 +37,7 @@ const TYPE_ICONS: Record<string, typeof Type> = {
 
 /** Local search over board names + every text-bearing object on any board. */
 export function SearchPanel() {
+  const t = useT();
   const open = useCanvasStore((s) => s.searchOpen);
   const setOpen = useCanvasStore((s) => s.setSearchOpen);
   const data = useEditorStore((s) => s.data);
@@ -86,7 +99,7 @@ export function SearchPanel() {
           <Input
             ref={inputRef}
             value={query}
-            placeholder="Search boards, notes, nodes and text…"
+            placeholder={t('se.placeholder')}
             className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -101,11 +114,11 @@ export function SearchPanel() {
         </div>
         <div className="haolio-scroll max-h-[340px] overflow-y-auto p-1.5">
           {query && results.length === 0 && (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">No matches for “{query}”.</div>
+            <div className="px-3 py-6 text-center text-sm text-muted-foreground">{t('se.noMatches', { q: query })}</div>
           )}
           {!query && (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Type to search this project. Results focus the canvas when selected.
+              {t('se.hint')}
             </div>
           )}
           {results.map((hit) => {
@@ -123,7 +136,9 @@ export function SearchPanel() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{snippet}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {hit.kind === 'board' ? 'Board' : `${TYPE_ICONS[hit.object!.type] ? hit.object!.type.replace('_', ' ') : 'object'} · ${hit.boardTitle}`}
+                    {hit.kind === 'board'
+                      ? t('se.board')
+                      : `${t(TYPE_TO_KEY[hit.object!.type] ?? 'pr.typeGroup')} · ${hit.boardTitle}`}
                   </span>
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />

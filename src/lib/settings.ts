@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { dbGet, dbSet } from './db';
+import type { LangPref } from './i18n';
 
 // -----------------------------------------------------------------------------
 // App-level preferences (theme, grid, autosave…) persisted locally.
@@ -11,6 +12,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface AppPrefs {
   theme: ThemeMode;
+  /** UI language: follow the OS or pin English / Bahasa Indonesia. */
+  lang: LangPref;
   gridStyle: 'dots' | 'lines';
   gridSize: number;
   snapToGrid: boolean;
@@ -21,6 +24,7 @@ export interface AppPrefs {
 
 export const DEFAULT_PREFS: AppPrefs = {
   theme: 'system',
+  lang: 'system',
   gridStyle: 'dots',
   gridSize: 20,
   snapToGrid: false,
@@ -44,6 +48,7 @@ export const useSettings = create<SettingsState>()((set, get) => ({
     set({ [key]: value } as Partial<SettingsState>);
     void dbSet(PREFS_KEY, {
       theme: get().theme,
+      lang: get().lang,
       gridStyle: get().gridStyle,
       gridSize: get().gridSize,
       snapToGrid: get().snapToGrid,

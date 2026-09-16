@@ -2,8 +2,10 @@ import { useEditorStore } from '@/stores/editorStore';
 import { EditableText } from '@/components/EditableText';
 import { isShapeKind, shapePath } from '@/lib/geometry';
 import type { CanvasObject } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export function ShapeView({ obj, editing }: { obj: CanvasObject; editing: boolean }) {
+  const t = useT();
   const kind = isShapeKind(obj.data.shape) ? obj.data.shape : 'rectangle';
   const text = String(obj.data.text ?? '');
   const fill = obj.style.fill ?? '#6366f1';
@@ -41,7 +43,7 @@ export function ShapeView({ obj, editing }: { obj: CanvasObject; editing: boolea
             textAlign: obj.style.align ?? 'center',
             lineHeight: 1.3,
           }}
-          placeholder="Label"
+          placeholder={t('ph.label')}
         />
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useSettings } from '@/lib/settings';
 import { useWindowTitle } from '@/components/ThemeProvider';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import { useImageImport } from '@/hooks/useImageImport';
 import { registerUiEvent, emitUiEvent } from '@/lib/uiEvents';
 import {
   exportBoardImageFlow,
@@ -24,6 +25,7 @@ import { SearchPanel } from './SearchPanel';
 import { SettingsDialog } from './SettingsDialog';
 import { Toaster } from '@/components/Toaster';
 import { Canvas } from '@/components/canvas/Canvas';
+import { tNow } from '@/lib/i18n';
 
 const AUTOSAVE_DEBOUNCE_MS = 700;
 
@@ -33,6 +35,25 @@ export function EditorShell({ onBackToDashboard }: { onBackToDashboard: () => vo
   const hydrated = useRef(false);
   useWindowTitle(projectName);
   useShortcuts(true);
+
+  // Paste images from the OS clipboard straight onto the canvas (screenshots).
+  const { importFiles } = useImageImport();
+  const importRef = useRef(importFiles);
+  importRef.current = importFiles;
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const files = e.clipboardData?.files;
+      if (!files || files.length === 0) return;
+      if ([...files].some((f) => f.type.startsWith('image/'))) {
+        e.preventDefault();
+        void importRef.current(files);
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
 
   // Center the viewport on first mount of a project.
   useEffect(() => {
@@ -60,7 +81,7 @@ export function EditorShell({ onBackToDashboard }: { onBackToDashboard: () => vo
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         useEditorStore.getState().setSaveStatus('error', message);
-        toast.error('Unable to save project.', {
+        toast.error(tNow('msg.unableSave', { reason: '' }), {
           actionLabel: 'Retry',
           onAction: () => void flushNow(),
         });
@@ -138,14 +159,19 @@ export function EditorShell({ onBackToDashboard }: { onBackToDashboard: () => vo
       registerUiEvent('export-png-board', () => void exportBoardImageFlow('png', 'board')),
       registerUiEvent('export-svg-board', () => void exportBoardImageFlow('svg', 'board')),
       registerUiEvent('export-png-selection', () => {
-        if (useEditorStore.getState().selection.objects.length === 0) toast.info('Select objects to export a selection.');
+        if (useEditorStore.getState().selection.objects.length === 0) toast.info(tNow('msg.selectToExport'));
         else void exportBoardImageFlow('png', 'selection');
       }),
       registerUiEvent('export-svg-selection', () => {
-        if (useEditorStore.getState().selection.objects.length === 0) toast.info('Select objects to export a selection.');
+        if (useEditorStore.getState().selection.objects.length === 0) toast.info(tNow('msg.selectToExport'));
         else void exportBoardImageFlow('svg', 'selection');
       }),
       registerUiEvent('export-png-viewport', () => void exportBoardImageFlow('png', 'viewport')),
+      registerUiEvent('export-pdf-board', () => void exportBoardImageFlow('pdf', 'board')),
+      registerUiEvent('export-pdf-selection', () => {
+        if (useEditorStore.getState().selection.objects.length === 0) toast.info(tNow('msg.selectToExport'));
+        else void exportBoardImageFlow('pdf', 'selection');
+      }),
       registerUiEvent('toggle-search', () => useCanvasStore.getState().setSearchOpen(!useCanvasStore.getState().searchOpen)),
       registerUiEvent('toggle-settings', () => useCanvasStore.getState().setSettingsOpen(!useCanvasStore.getState().settingsOpen)),
     ];

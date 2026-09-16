@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLibraryStore } from '@/stores/libraryStore';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectTemplate } from '@/lib/templates';
 
-const TEMPLATES: { id: ProjectTemplate; title: string; description: string }[] = [
-  { id: 'welcome', title: 'Guided tour', description: 'A small example board that teaches the basics.' },
-  { id: 'mindmap', title: 'Mind map starter', description: 'A root idea with a few branches, ready to grow.' },
-  { id: 'blank', title: 'Blank board', description: 'A single empty board. Start from scratch.' },
+const TEMPLATES: { id: ProjectTemplate; titleKey: string; descKey: string }[] = [
+  { id: 'welcome', titleKey: 'np.tplWelcome', descKey: 'np.tplWelcomeDesc' },
+  { id: 'mindmap', titleKey: 'np.tplMindmap', descKey: 'np.tplMindmapDesc' },
+  { id: 'blank', titleKey: 'np.tplBlank', descKey: 'np.tplBlankDesc' },
 ];
 
 export function NewProjectDialog({
@@ -21,6 +22,7 @@ export function NewProjectDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const createProject = useLibraryStore((s) => s.createProject);
+  const t = useT();
   const [name, setName] = useState('');
   const [template, setTemplate] = useState<ProjectTemplate>('mindmap');
 
@@ -40,16 +42,16 @@ export function NewProjectDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>New Project</DialogTitle>
-          <DialogDescription>Projects are stored locally on this computer.</DialogDescription>
+          <DialogTitle>{t('np.title')}</DialogTitle>
+          <DialogDescription>{t('np.desc')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="new-project-name">Project name</Label>
+            <Label htmlFor="new-project-name">{t('np.name')}</Label>
             <Input
               id="new-project-name"
               autoFocus
-              placeholder="e.g. My Game GDD"
+              placeholder={t('np.placeholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
@@ -58,20 +60,20 @@ export function NewProjectDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Start from</Label>
+            <Label>{t('np.startFrom')}</Label>
             <div className="space-y-1.5">
-              {TEMPLATES.map((t) => (
+              {TEMPLATES.map((tpl) => (
                 <button
-                  key={t.id}
+                  key={tpl.id}
                   type="button"
                   className={cn(
                     'w-full rounded-lg border px-3 py-2 text-left transition-colors',
-                    template === t.id ? 'border-primary bg-primary/5' : 'hover:bg-accent',
+                    template === tpl.id ? 'border-primary bg-primary/5' : 'hover:bg-accent',
                   )}
-                  onClick={() => setTemplate(t.id)}
+                  onClick={() => setTemplate(tpl.id)}
                 >
-                  <div className="text-sm font-medium">{t.title}</div>
-                  <div className="text-xs text-muted-foreground">{t.description}</div>
+                  <div className="text-sm font-medium">{t(tpl.titleKey)}</div>
+                  <div className="text-xs text-muted-foreground">{t(tpl.descKey)}</div>
                 </button>
               ))}
             </div>
@@ -79,9 +81,9 @@ export function NewProjectDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
-          <Button onClick={create}>Create project</Button>
+          <Button onClick={create}>{t('np.create')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

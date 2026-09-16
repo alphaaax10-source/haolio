@@ -148,6 +148,35 @@ export function buildBoardSvg(
   );
 }
 
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read image data'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Rasterize the board SVG into a single-page PDF sized exactly to the
+ * exported region (rendered at 2x for crisp output).
+ */
+export async function svgToPdfBlob(svg: string, widthPx: number, heightPx: number): Promise<Blob> {
+  const png = await svgToPngBlob(svg, 2);
+  const dataUrl = await blobToDataUrl(png);
+  const { jsPDF } = await import('jspdf');
+  const w = Math.max(1, Math.round(widthPx));
+  const h = Math.max(1, Math.round(heightPx));
+  const doc = new jsPDF({
+    orientation: w >= h ? 'landscape' : 'portrait',
+    unit: 'px',
+    format: [w, h],
+    compress: true,
+  });
+  doc.addImage(dataUrl, 'PNG', 0, 0, w, h);
+  return doc.output('blob');
+}
+
 export async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
   const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   const img = new Image();

@@ -1,8 +1,10 @@
 import { useEditorStore } from '@/stores/editorStore';
 import { EditableText } from '@/components/EditableText';
 import type { CanvasObject } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export function StickyNoteView({ obj, editing }: { obj: CanvasObject; editing: boolean }) {
+  const t = useT();
   const text = String(obj.data.text ?? '');
   const shadow = 'shadow-[0_2px_8px_rgba(0,0,0,0.14)]';
   const typography: React.CSSProperties = {
@@ -35,7 +37,7 @@ export function StickyNoteView({ obj, editing }: { obj: CanvasObject; editing: b
         }}
         className="h-full w-full"
         style={typography}
-        placeholder="Write something…"
+        placeholder={t('ph.sticky')}
       />
     </div>
   );

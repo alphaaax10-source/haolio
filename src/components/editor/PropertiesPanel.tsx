@@ -34,15 +34,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { MIND_COLORS, STICKY_COLORS } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ArrowStyle, CanvasObject, ConnectorRoute, Edge, ShapeKind } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const SHAPE_KINDS: ShapeKind[] = ['rectangle', 'rounded_rectangle', 'circle', 'diamond', 'triangle', 'hexagon'];
 const SHAPE_LABELS: Record<ShapeKind, string> = {
-  rectangle: 'Rectangle',
-  rounded_rectangle: 'Rounded rectangle',
-  circle: 'Circle',
-  diamond: 'Diamond',
-  triangle: 'Triangle',
-  hexagon: 'Hexagon',
+  rectangle: 'sh.rectangle',
+  rounded_rectangle: 'sh.rounded',
+  circle: 'sh.circle',
+  diamond: 'sh.diamond',
+  triangle: 'sh.triangle',
+  hexagon: 'sh.hexagon',
 };
 
 /** Number field with live preview while typing and a single history commit on blur. */
@@ -163,13 +164,13 @@ function Swatches({ colors, value, onPick }: { colors: string[]; value: string |
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  text: 'Text',
-  sticky_note: 'Sticky note',
-  shape: 'Shape',
-  image: 'Image',
-  frame: 'Frame',
-  mindmap_node: 'Mind map node',
-  group: 'Group',
+  text: 'pr.typeText',
+  sticky_note: 'pr.typeSticky',
+  shape: 'pr.typeShape',
+  image: 'pr.typeImage',
+  frame: 'pr.typeFrame',
+  mindmap_node: 'pr.typeMind',
+  group: 'pr.typeGroup',
 };
 
 export function PropertiesPanel() {
@@ -177,6 +178,7 @@ export function PropertiesPanel() {
   const objects = useEditorStore((s) => s.objects);
   const edges = useEditorStore((s) => s.edges);
   const rev = useEditorStore((s) => s.rev);
+  const t = useT();
 
   if (selection.objects.length === 0 && selection.edges.length === 0) return null;
   void rev;
@@ -206,7 +208,9 @@ export function PropertiesPanel() {
     >
       <div className="flex items-center justify-between border-b px-3 py-2.5">
         <div className="text-sm font-semibold">
-          {single ? TYPE_LABELS[single.type] : `${selectedObjects.length} objects${selectedEdges.length ? ` + ${selectedEdges.length} links` : ''}`}
+          {single
+            ? t(TYPE_LABELS[single.type])
+            : t('pr.count', { n: selectedObjects.length, links: selectedEdges.length ? t('pr.links', { n: selectedEdges.length }) : '' })}
         </div>
       </div>
 
@@ -216,7 +220,7 @@ export function PropertiesPanel() {
 
       {selectedObjects.length > 0 && (
         <>
-          <Section title="Position & size">
+          <Section title={t('pr.positionSize')}>
             <div className="grid grid-cols-2 gap-1.5">
               <label className="space-y-1">
                 <span className="text-[10px] text-muted-foreground">X</span>
@@ -242,7 +246,7 @@ export function PropertiesPanel() {
                       value={single.width}
                       min={4}
                       onLive={(v) => livePos({ width: v })}
-                      onCommit={(v) => update({ width: v }, 'Resize object')}
+                      onCommit={(v) => update({ width: v }, t('pr.resize'))}
                     />
                   </label>
                   <label className="space-y-1">
@@ -251,36 +255,36 @@ export function PropertiesPanel() {
                       value={single.height}
                       min={4}
                       onLive={(v) => livePos({ height: v })}
-                      onCommit={(v) => update({ height: v }, 'Resize object')}
+                      onCommit={(v) => update({ height: v }, t('pr.resize'))}
                     />
                   </label>
                 </>
               )}
             </div>
             {single && (
-              <Row label="Rotation">
+              <Row label={t('pr.rotation')}>
                 <NumberField
                   className="w-20"
                   value={single.rotation}
                   min={0}
                   max={360}
                   onLive={(v) => livePos({ rotation: v })}
-                  onCommit={(v) => update({ rotation: v }, 'Rotate object')}
+                  onCommit={(v) => update({ rotation: v }, t('pr.rotate'))}
                 />
               </Row>
             )}
           </Section>
 
-          <Section title="Layer & opacity">
+          <Section title={t('pr.layerOpacity')}>
             <div className="flex gap-1.5">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => useEditorStore.getState().reorder(ids, 'front')}>
-                <ChevronsUp /> Front
+                <ChevronsUp /> {t('pr.front')}
               </Button>
               <Button variant="outline" size="sm" className="flex-1" onClick={() => useEditorStore.getState().reorder(ids, 'back')}>
-                <ChevronsDown /> Back
+                <ChevronsDown /> {t('pr.back')}
               </Button>
             </div>
-            <Row label="Opacity">
+            <Row label={t('pr.opacity')}>
               <input
                 type="range"
                 min={0.1}
@@ -294,9 +298,9 @@ export function PropertiesPanel() {
           </Section>
 
           {single?.type === 'sticky_note' && (
-            <Section title="Sticky color">
+            <Section title={t('pr.stickyColor')}>
               <Swatches colors={STICKY_COLORS} value={single.style.fill} onPick={(c) => setStyle({ fill: c })} />
-              <Row label="Font size">
+              <Row label={t('pr.fontSize')}>
                 <NumberField
                   className="w-20"
                   value={single.style.fontSize ?? 15}
@@ -311,8 +315,8 @@ export function PropertiesPanel() {
           )}
 
           {type === 'text' && (
-            <Section title="Typography">
-              <Row label="Font size">
+            <Section title={t('pr.typography')}>
+              <Row label={t('pr.fontSize')}>
                 <NumberField
                   className="w-20"
                   value={(single ?? selectedObjects[0]!).style.fontSize ?? 18}
@@ -346,14 +350,14 @@ export function PropertiesPanel() {
                 </Button>
                 <AlignButtonsInline style={single?.style} onSet={setStyle} />
               </div>
-              <Row label="Color">
+              <Row label={t('pr.color')}>
                 <ColorField value={single?.style.color} onChange={(c) => setStyle({ color: c })} allowClear />
               </Row>
             </Section>
           )}
 
           {single?.type === 'shape' && (
-            <Section title="Shape">
+            <Section title={t('pr.shape')}>
               <Select
                 value={single.data.shape ?? 'rectangle'}
                 onValueChange={(v) => useEditorStore.getState().setShapeKind(ids, v as ShapeKind)}
@@ -364,18 +368,18 @@ export function PropertiesPanel() {
                 <SelectContent>
                   {SHAPE_KINDS.map((k) => (
                     <SelectItem key={k} value={k}>
-                      {SHAPE_LABELS[k]}
+                      {t(SHAPE_LABELS[k])}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Row label="Fill">
+              <Row label={t('pr.fill')}>
                 <ColorField value={single.style.fill} onChange={(c) => setStyle({ fill: c ?? 'transparent' })} />
               </Row>
-              <Row label="Border">
+              <Row label={t('pr.border')}>
                 <ColorField value={single.style.stroke} onChange={(c) => setStyle({ stroke: c })} />
               </Row>
-              <Row label="Border width">
+              <Row label={t('pr.borderWidth')}>
                 <NumberField
                   className="w-20"
                   value={single.style.strokeWidth ?? 0}
@@ -385,15 +389,15 @@ export function PropertiesPanel() {
                   onCommit={(v) => setStyle({ strokeWidth: v })}
                 />
               </Row>
-              <Row label="Text color">
+              <Row label={t('pr.textColor')}>
                 <ColorField value={single.style.color} onChange={(c) => setStyle({ color: c })} allowClear />
               </Row>
             </Section>
           )}
 
           {single?.type === 'image' && (
-            <Section title="Image">
-              <Row label="Fit">
+            <Section title={t('pr.image')}>
+              <Row label={t('pr.fit')}>
                 <Select
                   value={String(single.style.fit ?? 'cover')}
                   onValueChange={(v) => setStyle({ fit: v as 'cover' | 'contain' })}
@@ -402,12 +406,12 @@ export function PropertiesPanel() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cover">Fill (crop)</SelectItem>
-                    <SelectItem value="contain">Fit (letterbox)</SelectItem>
+                    <SelectItem value="cover">{t('pr.fitCover')}</SelectItem>
+                    <SelectItem value="contain">{t('pr.fitContain')}</SelectItem>
                   </SelectContent>
                 </Select>
               </Row>
-              <Row label="Corner radius">
+              <Row label={t('pr.cornerRadius')}>
                 <NumberField
                   className="w-20"
                   value={single.style.radius ?? 8}
@@ -421,8 +425,8 @@ export function PropertiesPanel() {
           )}
 
           {single?.type === 'frame' && (
-            <Section title="Frame">
-              <Row label="Title">
+            <Section title={t('pr.frame')}>
+              <Row label={t('pr.title')}>
                 <Input
                   className="h-7 px-2 text-xs"
                   value={String(single.data.text ?? '')}
@@ -430,30 +434,30 @@ export function PropertiesPanel() {
                   onBlur={(e) => useEditorStore.getState().setText(single.id, e.target.value)}
                 />
               </Row>
-              <Row label="Border">
+              <Row label={t('pr.border')}>
                 <ColorField value={single.style.stroke} onChange={(c) => setStyle({ stroke: c })} />
               </Row>
             </Section>
           )}
 
           {single?.type === 'mindmap_node' && (
-            <Section title="Mind map">
+            <Section title={t('pr.mindmap')}>
               <div className="flex flex-wrap gap-1.5">
                 <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().addMindChild(single.id)}>
-                  <GitBranch /> Add child
+                  <GitBranch /> {t('cm.addChild')}
                 </Button>
                 {!single.data.mind?.parentId && (
                   <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().addMindSibling(single.id)}>
-                    Add sibling
+                    {t('cm.addSibling')}
                   </Button>
                 )}
                 {(single.data.mind?.childCount ?? 0) > 0 && (
                   <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().toggleCollapse(single.id)}>
-                    {single.data.mind?.collapsed ? 'Expand' : 'Collapse'}
+                    {single.data.mind?.collapsed ? t('pr.expandShort') : t('pr.collapseShort')}
                   </Button>
                 )}
               </div>
-              <Row label="Layout">
+              <Row label={t('pr.layout')}>
                 <div className="flex gap-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -461,7 +465,7 @@ export function PropertiesPanel() {
                         <ArrowRight />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Horizontal</TooltipContent>
+                    <TooltipContent>{t('cm.layoutH')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -469,7 +473,7 @@ export function PropertiesPanel() {
                         <ArrowDown />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Vertical</TooltipContent>
+                    <TooltipContent>{t('cm.layoutV')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -477,33 +481,33 @@ export function PropertiesPanel() {
                         <Orbit />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Radial</TooltipContent>
+                    <TooltipContent>{t('cm.layoutR')}</TooltipContent>
                   </Tooltip>
                 </div>
               </Row>
               <Swatches colors={MIND_COLORS} value={single.style.fill} onPick={(c) => setStyle({ fill: c })} />
-              <Row label="Text color">
+              <Row label={t('pr.textColor')}>
                 <ColorField value={single.style.color} onChange={(c) => setStyle({ color: c })} allowClear />
               </Row>
               {mindChildrenOf(objects, single.id).length > 0 && (
                 <Button variant="ghost" size="sm" className="w-full" onClick={() => useEditorStore.getState().relayoutMindMap(single.data.mind?.rootId ?? single.id)}>
-                  Auto-arrange branch
+                  {t('pr.autoArrange')}
                 </Button>
               )}
             </Section>
           )}
 
-          <Section title="Actions">
+          <Section title={t('pr.actions')}>
             <div className="flex flex-wrap gap-1.5">
               <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().duplicateSelection()}>
-                <CopyPlus /> Duplicate
+                <CopyPlus /> {t('common.duplicate')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().copySelection()}>
-                <Copy /> Copy
+                <Copy /> {t('common.copy')}
               </Button>
               {selectedObjects.length > 1 && (
                 <Button variant="outline" size="sm" onClick={() => useEditorStore.getState().group(ids)}>
-                  <GroupIcon /> Group
+                  <GroupIcon /> {t('pr.group')}
                 </Button>
               )}
               {(single?.type === 'group' || selectedObjects.some((o) => o.parentId)) && (
@@ -512,7 +516,7 @@ export function PropertiesPanel() {
                   size="sm"
                   onClick={() => useEditorStore.getState().ungroup(single?.type === 'group' ? [single.id] : ids)}
                 >
-                  <UngroupIcon /> Ungroup
+                  <UngroupIcon /> {t('cm.ungroup')}
                 </Button>
               )}
               <Button
@@ -524,7 +528,7 @@ export function PropertiesPanel() {
                   else useEditorStore.getState().deleteSelection();
                 }}
               >
-                <Trash2 /> Delete
+                <Trash2 /> {t('common.delete')}
               </Button>
             </div>
           </Section>
@@ -558,10 +562,11 @@ function AlignButtonsInline({ style, onSet }: { style?: CanvasObject['style']; o
 function EdgeProperties({ edges }: { edges: Edge[] }) {
   const single = edges.length === 1 ? edges[0] : undefined;
   const ids = edges.map((e) => e.id);
+  const t = useT();
   return (
     <>
-      <Section title="Connection">
-        <Row label="Line">
+      <Section title={t('pr.connection')}>
+        <Row label={t('pr.line')}>
           <Select
             value={single?.data.route ?? 'curved'}
             onValueChange={(v) => useEditorStore.getState().setEdgeRoute(ids, v as ConnectorRoute)}
@@ -570,13 +575,13 @@ function EdgeProperties({ edges }: { edges: Edge[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="straight">Straight</SelectItem>
-              <SelectItem value="curved">Curved</SelectItem>
-              <SelectItem value="elbow">Elbow</SelectItem>
+              <SelectItem value="straight">{t('cm.lineStraight')}</SelectItem>
+              <SelectItem value="curved">{t('cm.lineCurved')}</SelectItem>
+              <SelectItem value="elbow">{t('cm.lineElbow')}</SelectItem>
             </SelectContent>
           </Select>
         </Row>
-        <Row label="Arrows">
+        <Row label={t('pr.arrows')}>
           <Select
             value={single?.data.arrow ?? 'none'}
             onValueChange={(v) => useEditorStore.getState().setEdgeArrow(ids, v as ArrowStyle)}
@@ -585,17 +590,17 @@ function EdgeProperties({ edges }: { edges: Edge[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              <SelectItem value="arrow">Arrow</SelectItem>
-              <SelectItem value="double">Double arrow</SelectItem>
+              <SelectItem value="none">{t('cm.noArrow')}</SelectItem>
+              <SelectItem value="arrow">{t('cm.arrow')}</SelectItem>
+              <SelectItem value="double">{t('cm.doubleArrow')}</SelectItem>
             </SelectContent>
           </Select>
         </Row>
-        <Row label="Color">
+        <Row label={t('pr.color')}>
           <ColorField value={single?.style.color} onChange={(c) => useEditorStore.getState().updateEdges(ids, (e) => ({ style: { ...e.style, color: c } }))} allowClear />
         </Row>
         {single && (
-          <Row label="Width">
+          <Row label={t('pr.width')}>
             <NumberField
               className="w-20"
               value={single.style.width ?? 2}
@@ -608,14 +613,14 @@ function EdgeProperties({ edges }: { edges: Edge[] }) {
           </Row>
         )}
       </Section>
-      <Section title="Actions">
+      <Section title={t('pr.actions')}>
         <Button
           variant="outline"
           size="sm"
           className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
           onClick={() => useEditorStore.getState().deleteEdgesByIds(ids)}
         >
-          <Scissors /> Delete connection
+          <Scissors /> {t('cm.deleteConnection')}
         </Button>
       </Section>
     </>

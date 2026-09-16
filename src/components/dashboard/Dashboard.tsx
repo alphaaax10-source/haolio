@@ -16,22 +16,24 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { NewProjectDialog } from './NewProjectDialog';
 import { Toaster } from '@/components/Toaster';
 import { openProjectFileFlow } from '@/lib/appFiles';
+import { plural, useT, type Translate } from '@/lib/i18n';
 import { APP_VERSION } from '@/env';
 import type { ProjectRecord } from '@/lib/types';
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: Translate): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('dash.justNow');
+  if (minutes < 60) return t('dash.minutesAgo', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('dash.hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
+  if (days < 30) return t('dash.daysAgo', { n: days });
   return new Date(iso).toLocaleDateString();
 }
 
 export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void }) {
+  const t = useT();
   const projects = useLibraryStore((s) => s.projects);
   const openProject = useLibraryStore((s) => s.openProject);
   const renameProject = useLibraryStore((s) => s.renameProject);
@@ -55,14 +57,14 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Toggle theme"
+                aria-label={t('dash.lightDark')}
                 onClick={() => setPref('theme', document.documentElement.classList.contains('dark') ? 'light' : 'dark')}
               >
                 <Sun className="hidden dark:block" />
                 <Moon className="dark:hidden" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Light / dark</TooltipContent>
+            <TooltipContent>{t('dash.lightDark')}</TooltipContent>
           </Tooltip>
         </div>
 
@@ -77,20 +79,20 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
 
           <div className="mt-6 flex gap-2">
             <Button size="lg" onClick={() => setNewOpen(true)}>
-              <Plus /> New Project
+              <Plus /> {t('dash.newProject')}
             </Button>
             <Button size="lg" variant="outline" onClick={() => void openProjectFileFlow()}>
-              <FolderOpen /> Open Project
+              <FolderOpen /> {t('dash.openProject')}
             </Button>
           </div>
 
           <div className="mt-10 w-full">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Recent Projects
+              {t('dash.recent')}
             </h2>
             {projects.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No projects yet. Create your first one to get started.
+                {t('dash.empty')}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -115,30 +117,30 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold">{p.name}</div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" /> {timeAgo(p.lastOpenedAt)}
-                          <span>·</span> {p.boardCount} {p.boardCount === 1 ? 'board' : 'boards'}
-                          <span>·</span> {p.objectCount} objects
+                          <Clock className="h-3 w-3" /> {timeAgo(p.lastOpenedAt, t)}
+                          <span>·</span> {plural(t, 'dash.boards', p.boardCount)}
+                          <span>·</span> {t('dash.objects', { n: p.objectCount })}
                         </div>
                       </div>
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="iconSm" aria-label={`Options for ${p.name}`}>
+                          <Button variant="ghost" size="iconSm" aria-label={t('dash.optionsFor', { name: p.name })}>
                             <MoreHorizontal />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); open(p.id); }}>
-                            Open
+                            {t('common.open')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenaming(p); }}>
-                            <Pencil /> Rename
+                            <Pencil /> {t('common.rename')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={(e) => { e.stopPropagation(); setRemoving(p); }}
                           >
-                            <Trash2 /> Remove from list
+                            <Trash2 /> {t('dash.removeFromList')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -151,23 +153,23 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
         </main>
 
         <footer className="pb-4 text-center text-xs text-muted-foreground">
-          Haolio v{__APP_VERSION__} · Offline · Your data never leaves this PC
+          {t('dash.footer', { version: APP_VERSION })}
         </footer>
 
         <NewProjectDialog open={newOpen} onOpenChange={setNewOpen} />
         <RenameDialog
           open={!!renaming}
           onOpenChange={(o) => !o && setRenaming(null)}
-          title="Rename project"
+          title={t('dash.renameProject')}
           initial={renaming?.name ?? ''}
           onCommit={(name) => renaming && renameProject(renaming.id, name)}
         />
         <ConfirmDialog
           open={!!removing}
           onOpenChange={(o) => !o && setRemoving(null)}
-          title={`Remove “${removing?.name ?? ''}”?`}
-          description="The project and its local data will be deleted from this computer. This cannot be undone."
-          confirmLabel="Delete project"
+          title={t('dash.removeTitle', { name: removing?.name ?? '' })}
+          description={t('dash.removeDesc')}
+          confirmLabel={t('dash.deleteProject')}
           destructive
           onConfirm={() => removing && void removeProject(removing.id)}
         />
