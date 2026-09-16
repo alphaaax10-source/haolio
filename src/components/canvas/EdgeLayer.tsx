@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { computeEdgeGeometry } from '@/lib/edgeGeometry';
+import { cachedEdgeGeometry, pruneEdgeCache } from '@/lib/edgeGeometryCache';
 import { cn } from '@/lib/utils';
 import type { Edge } from '@/lib/types';
 
@@ -14,18 +14,13 @@ const EdgeView = memo(function EdgeView({ edge }: { edge: Edge }) {
   const from = useEditorStore((s) => s.objects[edge.from]);
   const to = useEditorStore((s) => s.objects[edge.to]);
   const selected = useEditorStore((s) => s.selection.edges.includes(edge.id));
-  const root = useEditorStore((s) => {
-    const f = s.objects[edge.from];
-    const rootId = f?.data.mind?.rootId;
-    return rootId ? s.objects[rootId] : undefined;
-  });
 
-  const geo = useMemo(() => {
-    if (!from || !to) return null;
-    const map: Record<string, (typeof from) | undefined> = { [edge.from]: from, [edge.to]: to };
-    if (root) map[root.id] = root;
-    return computeEdgeGeometry(edge, map as Record<string, NonNullable<typeof from>>);
-  }, [edge, from, to, root]);
+  // Reference-keyed cache: only recomputes when this edge or one of its two
+  // endpoints (or its mind tree root) was actually rewritten.
+  const geo = useMemo(
+    () => (from && to ? cachedEdgeGeometry(edge, useEditorStore.getState().objects) : null),
+    [edge, from, to],
+  );
 
   if (!geo) return null;
   const color = selected ? 'hsl(var(--primary))' : geo.color;
@@ -85,18 +80,15 @@ const EdgeView = memo(function EdgeView({ edge }: { edge: Edge }) {
 /** SVG layer for all connections (rendered beneath objects). */
 export function EdgeLayer() {
   const edges = useEditorStore((s) => s.edges);
-  const objects = useEditorStore((s) => s.objects);
   const viewport = useCanvasStore((s) => s.viewport);
 
+  // Marker defs derive purely from edge data (mind branches never draw
+  // arrows), so this only reruns when the edge SET changes — not on drags.
   const markers = useMemo(() => {
     const colors = new Set<string>();
     for (const edge of Object.values(edges)) {
-      const from = objects[edge.from];
-      const to = objects[edge.to];
-      if (!from || !to) continue;
-      const geo = computeEdgeGeometry(edge, objects);
-      if (!geo || geo.arrow === 'none') continue;
-      colors.add(geo.color);
+      if ((edge.data.arrow ?? 'none') === 'none') continue;
+      colors.add(String(edge.style.color ?? '#94a3b8'));
     }
     return [...colors].flatMap((color) => [
       <marker key={markerIdFor(color, false)} id={markerIdFor(color, false)} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
@@ -106,9 +98,12 @@ export function EdgeLayer() {
         <path d="M 0 0.8 L 9.2 5 L 0 9.2 z" fill={color} />
       </marker>,
     ]);
-  }, [edges, objects]);
+  }, [edges]);
 
-  const sorted = useMemo(() => Object.values(edges).sort((a, b) => a.z - b.z), [edges]);
+  const sorted = useMemo(() => {
+    pruneEdgeCache(new Set(Object.keys(edges)));
+    return Object.values(edges).sort((a, b) => a.z - b.z);
+  }, [edges]);
 
   return (
     <svg className={cn('absolute inset-0 h-full w-full')} style={{ overflow: 'visible', pointerEvents: 'none' }}>

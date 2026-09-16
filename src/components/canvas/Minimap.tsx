@@ -1,12 +1,14 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { useSettings } from '@/lib/settings';
 import { objectBounds, unionRects } from '@/lib/geometry';
-import type { Rect } from '@/lib/types';
+import type { CanvasObject, Rect } from '@/lib/types';
 
 const W = 176;
 const H = 124;
+/** Object-rect refresh interval while interacting (viewport rect stays live). */
+const CONTENT_DEBOUNCE_MS = 110;
 
 const TYPE_COLORS: Record<string, string> = {
   text: '#64748b',
@@ -16,6 +18,45 @@ const TYPE_COLORS: Record<string, string> = {
   frame: '#8b5cf6',
   mindmap_node: '#6366f1',
 };
+
+interface MinimapData {
+  rects: { key: string; color: string; x: number; y: number; width: number; height: number; kind: string }[];
+  /** Content extent incl. padding, in world coords (basis for the scale). */
+  content: Rect | null;
+  scale: number;
+}
+
+function computeMinimapData(objects: Record<string, CanvasObject>, worldView: Rect): MinimapData {
+  const list = Object.values(objects);
+  const objectRects = list
+    .filter((o) => o.type !== 'group')
+    .map((o) => ({ x: o.x, y: o.y, width: o.width, height: o.height }));
+  const raw = unionRects([...objectRects, worldView]);
+  if (!raw) return { rects: [], content: null, scale: 1 };
+  const pad = 40;
+  const content: Rect = {
+    x: raw.x - pad,
+    y: raw.y - pad,
+    width: raw.width + pad * 2,
+    height: raw.height + pad * 2,
+  };
+  const scale = Math.min(W / content.width, H / content.height);
+  const rects = list
+    .filter((o) => o.type !== 'group')
+    .map((o) => {
+      const b = { x: o.x, y: o.y, width: o.width, height: o.height };
+      return {
+        key: o.id,
+        color: TYPE_COLORS[o.type] ?? '#94a3b8',
+        x: (b.x - content.x) * scale,
+        y: (b.y - content.y) * scale,
+        width: Math.max(b.width * scale, 2),
+        height: Math.max(b.height * scale, 2),
+        kind: o.type,
+      };
+    });
+  return { rects, content, scale };
+}
 
 /** Compact minimap: content overview + draggable viewport rectangle. */
 export function Minimap() {
@@ -32,36 +73,17 @@ export function Minimap() {
     height: size.height / viewport.zoom,
   };
 
-  const { rects, content, scale } = useMemo(() => {
-    const objectRects = Object.values(objects)
-      .filter((o) => o.type !== 'group')
-      .map((o) => objectBounds(o));
-    const content = unionRects([...objectRects, worldView]);
-    if (!content) return { rects: [], content: null, scale: 1 };
-    const pad = 40;
-    const c: Rect = {
-      x: content.x - pad,
-      y: content.y - pad,
-      width: content.width + pad * 2,
-      height: content.height + pad * 2,
-    };
-    const scale = Math.min(W / c.width, H / c.height);
-    const rects = Object.values(objects)
-      .filter((o) => o.type !== 'group')
-      .map((o) => {
-        const b = objectBounds(o);
-        return {
-          key: o.id,
-          color: TYPE_COLORS[o.type] ?? '#94a3b8',
-          x: (b.x - c.x) * scale,
-          y: (b.y - c.y) * scale,
-          width: Math.max(b.width * scale, 2),
-          height: Math.max(b.height * scale, 2),
-          kind: o.type,
-        };
-      });
-    return { rects, content: c, scale };
+  // Expensive part (bounds of every object + union) is debounced so drags and
+  // pans stay smooth; the first paint computes synchronously.
+  const [data, setData] = useState<MinimapData>(() => computeMinimapData(objects, worldView));
+  useEffect(() => {
+    const id = window.setTimeout(() => setData(computeMinimapData(objects, worldView)), CONTENT_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects, worldView.x, worldView.y, worldView.width, worldView.height]);
+
+  const content = data.content;
+  const scale = data.scale;
 
   if (!visible || !content) return null;
 
@@ -99,7 +121,7 @@ export function Minimap() {
           dragging.current = false;
         }}
       >
-        {rects.map((r) => (
+        {data.rects.map((r) => (
           <rect
             key={r.key}
             x={r.x}
@@ -113,6 +135,7 @@ export function Minimap() {
             strokeWidth={r.kind === 'frame' ? 1 : 0}
           />
         ))}
+        {/* Live viewport indicator — updates every frame for instant feedback. */}
         <rect
           x={(worldView.x - content.x) * scale}
           y={(worldView.y - content.y) * scale}
