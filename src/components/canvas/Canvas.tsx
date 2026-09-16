@@ -14,6 +14,7 @@ import { ConnectionPreview } from './ConnectionPreview';
 import { GridView } from './GridView';
 import { Minimap } from './Minimap';
 import { CanvasMenu } from './CanvasMenu';
+import { MakeMenu } from './MakeMenu';
 import type { CanvasObject, Rect } from '@/lib/types';
 
 const CULL_MARGIN = 140;
@@ -204,6 +205,7 @@ export function Canvas() {
           <SelectionOverlay />
         </div>
       <Minimap />
+      <MakeMenu />
       <CanvasMenu />
     </div>
   );

@@ -58,6 +58,7 @@ export function useShortcuts(enabled: boolean): void {
         canvas.searchOpen ||
         canvas.settingsOpen ||
         canvas.contextMenu ||
+        canvas.makeMenu ||
         document.querySelector('[role="dialog"]')
       ) {
         return;

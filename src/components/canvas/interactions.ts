@@ -143,9 +143,9 @@ export function beginConnect(e: React.PointerEvent, obj: CanvasObject): void {
       useEditorStore.getState().connectObjects(from, target.id);
       return;
     }
-    // Released over empty canvas: arm click-to-click mode — the next click on
-    // an object completes the connection (Escape / tool change cancels).
-    state.setConnecting({ fromId: from, cursor: p });
+    // Released over empty canvas: offer to create a connected object right
+    // here (sticky / text / shape / mind map), auto-wired to the source.
+    useCanvasStore.getState().openMakeMenu({ x: ev.clientX, y: ev.clientY, world: p, fromId: from });
   };
   attach(move, up);
 }

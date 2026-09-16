@@ -13,6 +13,8 @@ export interface CanvasState {
   spacePanning: boolean;
   marquee: Rect | null;
   connecting: { fromId: string; cursor: Vec } | null;
+  /** Connector released over empty canvas: offer to create a connected object here. */
+  makeMenu: { x: number; y: number; world: Vec; fromId: string } | null;
   size: { width: number; height: number };
   /** Page-space position of the canvas container (for pointer math). */
   containerOrigin: Vec;
@@ -32,6 +34,8 @@ export interface CanvasState {
   setSpacePanning(v: boolean): void;
   setMarquee(rect: Rect | null): void;
   setConnecting(state: { fromId: string; cursor: Vec } | null): void;
+  openMakeMenu(menu: { x: number; y: number; world: Vec; fromId: string }): void;
+  closeMakeMenu(): void;
   setSize(width: number, height: number): void;
   zoomAt(anchor: Vec, factor: number): void;
   zoomBy(factor: number): void;
@@ -50,6 +54,7 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
   spacePanning: false,
   marquee: null,
   connecting: null,
+  makeMenu: null,
   size: { width: 1200, height: 800 },
   containerOrigin: { x: 0, y: 0 },
   searchOpen: false,
@@ -62,11 +67,13 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setContainerOrigin: (x, y) => set({ containerOrigin: { x, y } }),
   setViewport: (viewport) => set({ viewport }),
-  setTool: (tool) => set({ tool, marquee: null, connecting: null, contextMenu: null }),
+  setTool: (tool) => set({ tool, marquee: null, connecting: null, contextMenu: null, makeMenu: null }),
   setPendingShape: (pendingShape) => set({ pendingShape }),
   setSpacePanning: (spacePanning) => set({ spacePanning }),
   setMarquee: (marquee) => set({ marquee }),
   setConnecting: (connecting) => set({ connecting }),
+  openMakeMenu: (makeMenu) => set({ makeMenu, connecting: null }),
+  closeMakeMenu: () => set({ makeMenu: null }),
   setSize: (width, height) => set({ size: { width, height } }),
 
   zoomAt: (anchor, factor) => {

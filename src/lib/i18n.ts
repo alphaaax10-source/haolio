@@ -258,6 +258,7 @@ export const STRINGS: Dict = {
   'vc.goOrigin': { en: 'Go to origin', id: 'Ke titik nol' },
   'mm.title': { en: 'Minimap — drag to navigate', id: 'Minimap — seret untuk bernavigasi' },
   'toast.dismiss': { en: 'Dismiss', id: 'Tutup' },
+  'mk.title': { en: 'Make a connected…', id: 'Buat yang terhubung…' },
 
   // --- placeholders ---
   'ph.text': { en: 'Text', id: 'Teks' },
