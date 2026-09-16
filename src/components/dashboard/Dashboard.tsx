@@ -17,6 +17,7 @@ import { NewProjectDialog } from './NewProjectDialog';
 import { Toaster } from '@/components/Toaster';
 import { openProjectFileFlow } from '@/lib/appFiles';
 import { plural, useT, type Translate } from '@/lib/i18n';
+import { Logo, LogoMark } from '@/components/Logo';
 import { APP_VERSION } from '@/env';
 import type { ProjectRecord } from '@/lib/types';
 
@@ -70,8 +71,8 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
 
         <main className="haolio-scroll mx-auto flex w-full max-w-2xl flex-1 flex-col items-center overflow-y-auto px-6 pb-10">
           <div className="mt-6 flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-3xl text-white shadow-lg">
-              ◈
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg">
+              <Logo size={36} />
             </div>
             <h1 className="mt-4 text-2xl font-bold tracking-tight">Haolio</h1>
             <p className="mt-1 text-sm text-muted-foreground">Think. Map. Create.</p>
@@ -109,10 +110,10 @@ export function Dashboard({ onProjectOpened }: { onProjectOpened?: () => void })
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold text-white"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
                         style={{ background: p.color }}
                       >
-                        ◈
+                        <LogoMark size={22} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold">{p.name}</div>

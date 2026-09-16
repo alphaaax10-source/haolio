@@ -28,6 +28,7 @@ import {
 import { openProjectFileFlow, saveProjectSnapshotFlow } from '@/lib/appFiles';
 import { APP_VERSION } from '@/env';
 import { useT, type LangPref } from '@/lib/i18n';
+import { Logo } from '@/components/Logo';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -252,8 +253,8 @@ export function SettingsDialog() {
 
             {tab === 'about' && (
               <div className="flex h-full flex-col items-center justify-center gap-3 py-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-3xl text-white shadow-lg">
-                  ◈
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg">
+                  <Logo size={36} />
                 </div>
                 <div>
                   <div className="text-xl font-bold">{t('st.aboutName')}</div>

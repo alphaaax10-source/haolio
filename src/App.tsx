@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Logo } from '@/components/Logo';
 import { useLibraryStore } from '@/stores/libraryStore';
 import { useEditorStore } from '@/stores/editorStore';
 import { useSettings } from '@/lib/settings';
@@ -10,8 +11,8 @@ import { EditorShell } from '@/components/editor/EditorShell';
 function Splash() {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-background">
-      <div className="flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-3xl text-white shadow-lg">
-        ◈
+      <div className="flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg">
+        <Logo size={36} />
       </div>
       <div className="text-lg font-bold">Haolio</div>
       <div className="text-xs text-muted-foreground">Think. Map. Create.</div>

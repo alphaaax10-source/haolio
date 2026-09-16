@@ -40,6 +40,7 @@ import { emitUiEvent } from '@/lib/uiEvents';
 import { cn } from '@/lib/utils';
 import type { ExportScope } from '@/lib/exporter';
 import { useT } from '@/lib/i18n';
+import { Logo, LogoMark } from '@/components/Logo';
 
 function SaveStatus() {
   const status = useEditorStore((s) => s.saveStatus);
@@ -101,7 +102,7 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-60">
           <DropdownMenuLabel className="flex items-center gap-2">
-            <span className="text-base">◈</span> Haolio
+            <Logo size={18} /> <span className="font-semibold">Haolio</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onBackToDashboard}>
@@ -163,7 +164,7 @@ export function Topbar({ onBackToDashboard }: { onBackToDashboard: () => void })
         onClick={() => setRenameOpen(true)}
         title={t('dash.renameProject')}
       >
-        <span className="text-sm font-semibold text-primary">◈</span>
+        <LogoMark size={17} className="text-primary" />
         <span className="max-w-[220px] truncate text-sm font-semibold">{projectName}</span>
       </button>
       <span className="text-sm text-muted-foreground">/</span>
