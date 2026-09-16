@@ -180,10 +180,7 @@ export function SettingsDialog() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <div>
-                    <Label>{t('st.snap')}</Label>
-                    <p className="text-xs text-muted-foreground">{t('st.snapDesc')}</p>
-                  </div>
+                  <Label>{t('st.snap')}</Label>
                   <Switch checked={prefs.snapToGrid} onCheckedChange={(v) => setPref('snapToGrid', v)} />
                 </div>
                 <div className="flex items-center justify-between">

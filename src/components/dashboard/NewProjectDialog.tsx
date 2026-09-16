@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,10 +45,9 @@ export function NewProjectDialog({
         if (!o) setName('');
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent aria-describedby={undefined} className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('np.title')}</DialogTitle>
-          <DialogDescription>{t('np.desc')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
