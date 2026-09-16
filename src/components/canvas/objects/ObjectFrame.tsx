@@ -81,6 +81,10 @@ export const ObjectFrame = memo(function ObjectFrame({ obj }: { obj: CanvasObjec
         }}
         onPointerDown={isFrame ? undefined : onPointerDown}
         onDoubleClick={isFrame ? undefined : onDoubleClick}
+        // The canvas background is also a Radix ContextMenu trigger; without
+        // stopping propagation here BOTH menus would open on right-click and
+        // the canvas menu would cover the object's own menu.
+        onContextMenu={(e) => e.stopPropagation()}
       >
         {view}
       </div>
